@@ -1,0 +1,3447 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Phân Tích Hình Học Không Gian 3D - Bài 10: Đường Thẳng & Mặt Phẳng</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Three.js r128 & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            box-sizing: border-box;
+        }
+        code, .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow: hidden;
+            user-select: none;
+        }
+        /* Explicit layout fallback before Tailwind finishes parsing */
+        #app-root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: #020617;
+        }
+        #main-workspace {
+            flex: 1 1 0%;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+            min-height: 0;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.35);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.65);
+        }
+        /* 3D Canvas Container - Strict Aspect Ratio Preservation */
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 42%, #172554 0%, #0f172a 52%, #020617 100%);
+        }
+        #canvas-container canvas {
+            display: block;
+            outline: none;
+        }
+        /* Floating 3D Point Labels */
+        .point-label-3d {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(2, 6, 23, 0.88);
+            border: 1.5px solid rgba(56, 189, 248, 0.65);
+            color: #f8fafc;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+            white-space: nowrap;
+            transition: opacity 0.12s ease;
+            z-index: 10;
+        }
+        .point-label-3d.plane-tag {
+            background: rgba(30, 58, 138, 0.9);
+            border-color: #60a5fa;
+            color: #93c5fd;
+            font-style: italic;
+            font-size: 13px;
+        }
+        .point-label-3d.line-tag {
+            background: rgba(6, 78, 59, 0.92);
+            border-color: #34d399;
+            color: #a7f3d0;
+            font-style: italic;
+        }
+        .point-label-3d.highlight-tag {
+            background: rgba(136, 19, 55, 0.95);
+            border-color: #fb7185;
+            color: #ffe4e6;
+        }
+        .model-banner-3d {
+            background: linear-gradient(90deg, rgba(14, 165, 233, 0.92), rgba(79, 70, 229, 0.92));
+            border: 1px solid rgba(186, 230, 253, 0.5);
+            box-shadow: 0 8px 25px rgba(14, 165, 233, 0.35);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+    <!-- SINGLE UNIFIED ROOT CONTAINER -->
+    <div id="app-root">
+        <!-- ==================== TOP HEADER BAR ==================== -->
+        <header class="h-14 shrink-0 bg-slate-900/95 border-b border-slate-800 px-3 lg:px-5 flex items-center justify-between gap-2 z-30">
+            <!-- Left: Brand & Mobile Sidebar Button -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <button id="btn-mobile-sidebar" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700" title="Danh sách 42 mô hình">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate">
+                            HÌNH HỌC KHÔNG GIAN 11 • BÀI 10
+                        </h1>
+                        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                            42/42 Mô Hình 3D
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 truncate hidden sm:block">
+                        Engine Xét Nét Đứt / Liền Tự Động • Định Tuyến URL Trực Tiếp Từng Câu
+                    </p>
+                </div>
+            </div>
+
+            <!-- Center: Direct URL Bar & Quick Hash Tester -->
+            <div class="hidden md:flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 gap-2 shadow-inner">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    URL:
+                </span>
+                <input id="header-url-input" type="text" value="FINALL1.html#cau-1"
+                    onkeydown="if(event.key==='Enter') handleUrlInputJump(this.value)"
+                    class="bg-slate-900 text-xs font-mono font-bold text-sky-300 px-2 py-0.5 rounded border border-slate-800 focus:border-sky-500 focus:outline-none w-48 lg:w-56"
+                    title="Nhập ví dụ: FINALL1.html#cau-6 hoặc #phan-2-cau-1 rồi nhấn Enter để mở ngay câu đó" />
+                <button onclick="handleUrlInputJump(document.getElementById('header-url-input').value)"
+                    class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold transition border border-slate-700"
+                    title="Đi tới URL này">
+                    Đi tới
+                </button>
+                <button onclick="copyCurrentModelUrl()"
+                    class="px-2.5 py-0.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-[11px] font-bold transition flex items-center gap-1"
+                    title="Sao chép URL trực tiếp của câu này">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <span id="copy-url-btn-text">Copy URL</span>
+                </button>
+            </div>
+
+            <!-- Right: View Switcher & Mobile Inspector Toggle -->
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center">
+                    <button id="tab-studio" onclick="switchMainView('studio')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-500 text-white shadow">
+                        Không Gian 3D
+                    </button>
+                    <button id="tab-grid" onclick="switchMainView('grid')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+                        Lưới 42 URL
+                    </button>
+                </div>
+
+                <button id="btn-mobile-inspector" onclick="toggleMobileInspector()" class="xl:hidden p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700" title="Đề bài & Phân tích Nét Đứt/Liền">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- ==================== MAIN WORKSPACE ==================== -->
+        <div id="main-workspace" class="flex-1 flex overflow-hidden relative">
+
+            <!-- 1. LEFT SIDEBAR: 42 MODELS & URL DIRECTORY -->
+            <aside id="sidebar-panel" class="w-80 shrink-0 bg-slate-900/95 border-r border-slate-800 flex flex-col z-20 absolute lg:static inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
+                <div class="p-3 border-b border-slate-800 space-y-2.5">
+                    <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                        <button onclick="filterByPart('all')" id="filter-all" class="part-tab py-1.5 rounded-lg text-[11px] font-bold bg-sky-500 text-white">
+                            Tất cả (42)
+                        </button>
+                        <button onclick="filterByPart(1)" id="filter-1" class="part-tab py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white">
+                            Phần 1 (30)
+                        </button>
+                        <button onclick="filterByPart(2)" id="filter-2" class="part-tab py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white">
+                            Phần 2 (6)
+                        </button>
+                        <button onclick="filterByPart(3)" id="filter-3" class="part-tab py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white">
+                            Phần 3 (6)
+                        </button>
+                    </div>
+
+                    <div class="relative">
+                        <input id="search-input" type="text" oninput="renderSidebarList()" placeholder="Tìm câu (VD: Câu 6, #cau-18, chóp...)"
+                            class="w-full bg-slate-950 border border-slate-800 focus:border-sky-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none">
+                        <svg class="w-4 h-4 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div id="model-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+
+                <div class="p-2.5 border-t border-slate-800 bg-slate-950/90 text-[11px] text-slate-400 flex items-center justify-between">
+                    <span>Chuột trái: Xoay 3D</span>
+                    <span>Con lăn: Thu/Phóng</span>
+                    <span>Chuột phải: Kéo</span>
+                </div>
+            </aside>
+
+            <!-- 2. CENTER: INTERACTIVE 3D VIEWPORT & 42-MODEL URL CATALOG -->
+            <main class="flex-1 flex flex-col relative overflow-hidden bg-slate-950 min-w-0">
+
+                <!-- STUDIO 3D VIEW -->
+                <div id="studio-view" class="w-full h-full relative flex flex-col">
+                    <div id="canvas-container" class="flex-1 relative overflow-hidden">
+                        <!-- Dynamic 3D Point Labels Layer -->
+                        <div id="labels-layer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+                        <!-- Top-Left Floating Model Info Card -->
+                        <div class="absolute top-3 left-3 right-3 sm:right-auto sm:max-w-md pointer-events-none z-10 flex flex-col gap-2">
+                            <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl pointer-events-auto">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <span id="hud-model-badge" class="px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-sky-500 text-white shadow">
+                                        Câu 1 - Phần 1
+                                    </span>
+                                    <span id="hud-model-category" class="text-[11px] font-semibold text-sky-300 truncate">
+                                        Biểu diễn mặt phẳng (P)
+                                    </span>
+                                    <span id="hud-model-index" class="text-[11px] font-mono text-emerald-400 ml-auto">
+                                        #cau-1
+                                    </span>
+                                </div>
+                                <p id="hud-model-summary" class="mt-1.5 text-xs text-slate-300 leading-relaxed">
+                                    Mặt phẳng (P) được biểu diễn bằng hình bình hành trong không gian 3 chiều.
+                                </p>
+                            </div>
+
+                            <!-- Real-Time Hidden-Line Engine Status Pill -->
+                            <div class="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-3 text-[11px] w-fit pointer-events-auto shadow-lg">
+                                <span class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    Auto Hidden-Line: BẬT
+                                </span>
+                                <span class="text-slate-600">|</span>
+                                <span class="flex items-center gap-1 text-slate-200 font-semibold">
+                                    <span class="w-3.5 h-0.5 bg-sky-400 inline-block"></span>
+                                    <span id="hud-solid-count" class="font-mono text-sky-300 font-bold">4</span> Nét liền
+                                </span>
+                                <span class="flex items-center gap-1 text-amber-300 font-semibold">
+                                    <span class="w-3.5 border-b-2 border-dashed border-amber-400 inline-block"></span>
+                                    <span id="hud-dashed-count" class="font-mono text-amber-300 font-bold">0</span> Nét đứt
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Top-Center 3D Label Banner -->
+                        <div class="absolute top-3 left-1/2 -translate-x-1/2 hidden 2xl:flex items-center pointer-events-none z-10">
+                            <div id="hud-center-title" class="model-banner-3d px-4 py-1.5 rounded-full text-xs font-extrabold tracking-wide text-white uppercase">
+                                CÂU 1 - PHẦN 1 (FINALL1.html#cau-1)
+                            </div>
+                        </div>
+
+                        <!-- Bottom Floating 3D Control Dock -->
+                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 p-1.5 rounded-2xl shadow-2xl max-w-[96vw] overflow-x-auto">
+                            <button onclick="stepModel(-1)" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1 shrink-0 transition" title="Câu trước (Phím mũi tên trái)">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                <span>Trước</span>
+                            </button>
+                            <button onclick="stepModel(1)" class="px-2.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-xs font-bold text-white flex items-center gap-1 shrink-0 transition shadow" title="Câu tiếp theo (Phím mũi tên phải)">
+                                <span>Tiếp</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+
+                            <div class="h-5 w-[1px] bg-slate-700 mx-0.5 shrink-0"></div>
+
+                            <button onclick="resetCameraView()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1 shrink-0 transition" title="Đặt lại góc nhìn chuẩn SGK">
+                                <span>Góc SGK</span>
+                            </button>
+
+                            <button onclick="flipCameraBackView()" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-semibold text-amber-300 flex items-center gap-1 shrink-0 transition" title="Lật góc nhìn 180 độ ra phía sau để kiểm tra đảo Nét Đứt ↔ Nét Liền">
+                                <span>Lật 180°</span>
+                            </button>
+
+                            <button onclick="lookFromBottomView()" class="px-2.5 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-xs font-semibold text-indigo-300 flex items-center gap-1 shrink-0 transition" title="Nhìn từ dưới đáy lên để thấy các cạnh đáy chuyển thành nét liền">
+                                <span>Nhìn từ đáy</span>
+                            </button>
+
+                            <button id="btn-autorotate" onclick="toggleAutoRotate()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1 shrink-0 transition">
+                                <span>Tự xoay</span>
+                            </button>
+
+                            <button id="btn-toggle-planes" onclick="togglePlanesVisibility()" class="px-2.5 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-xs font-medium text-sky-300 flex items-center gap-1 shrink-0 transition" title="Bật/Tắt các mặt chắn để xem chế độ X-Ray">
+                                <span>Mặt chắn</span>
+                            </button>
+
+                            <button id="btn-toggle-labels" onclick="toggleLabelsVisibility()" class="px-2.5 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-xs font-medium text-sky-300 flex items-center gap-1 shrink-0 transition">
+                                <span>Nhãn tên</span>
+                            </button>
+
+                            <button id="btn-toggle-grid" onclick="toggleGridHelper()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1 shrink-0 transition">
+                                <span>Lưới đáy</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 42-MODEL GRID & URL DIRECTORY VIEW -->
+                <div id="grid-view" class="hidden w-full h-full overflow-y-auto p-4 sm:p-6 bg-slate-950">
+                    <div class="max-w-7xl mx-auto space-y-6 pb-12">
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-lg sm:text-xl font-extrabold text-white">
+                                    Danh Mục 42 Mô Hình 3D & Đường Dẫn URL Trực Tiếp
+                                </h2>
+                                <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                                    Mỗi bài toán có 1 tham số URL riêng (ví dụ: <code class="text-sky-400 font-bold">FINALL1.html#cau-1</code>, <code class="text-sky-400 font-bold">FINALL1.html#cau-6</code>). Nhấn vào thẻ bất kỳ để mở ngay mô hình 3D.
+                                </p>
+                            </div>
+                            <button onclick="switchMainView('studio')" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold shrink-0 self-start md:self-auto shadow">
+                                Quay lại Không Gian 3D
+                            </button>
+                        </div>
+
+                        <div id="grid-catalog-container" class="space-y-8"></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 3. RIGHT INSPECTOR PANEL: REAL-TIME OCCLUSION ANALYZER & QUESTION SOLVER -->
+            <aside id="inspector-panel" class="w-96 shrink-0 bg-slate-900/95 border-l border-slate-800 flex flex-col z-20 absolute xl:static inset-y-0 right-0 transform translate-x-full xl:translate-x-0 transition-transform duration-200">
+                <div class="p-3.5 border-b border-slate-800 flex items-center justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span id="panel-label-badge" class="px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                                Câu 1 - Phần 1
+                            </span>
+                            <button onclick="copyCurrentModelUrl()" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-mono text-emerald-400 flex items-center gap-1 transition" title="Nhấn để copy URL trực tiếp của câu này">
+                                <span id="panel-url-badge">FINALL1.html#cau-1</span>
+                                <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                        </div>
+                        <h2 id="panel-title" class="text-sm font-bold text-white mt-1.5 truncate">
+                            Hình biểu diễn của mặt phẳng (P)
+                        </h2>
+                    </div>
+                    <button onclick="toggleMobileInspector(false)" class="xl:hidden p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-3.5 space-y-4">
+                    <!-- LIVE REAL-TIME SPATIAL GEOMETRY & OCCLUSION ANALYZER -->
+                    <div class="bg-slate-950/95 border border-sky-500/30 rounded-2xl p-3.5 space-y-3 shadow-inner">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5 text-xs font-extrabold text-sky-300">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span>Phân Tích Nét Đứt / Liền (Real-Time)</span>
+                            </div>
+                            <span id="panel-occlusion-summary" class="text-[11px] font-mono text-emerald-400 font-bold">4 Liền • 0 Đứt</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                                <span>Danh sách cạnh (Nhấn để soi sáng 3D)</span>
+                                <span>Trạng thái & Lý do</span>
+                            </div>
+                            <div id="live-occlusion-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-800/90 space-y-1.5">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                                <span>Xét Pháp Tuyến Mặt (n⃗ · v⃗_cam)</span>
+                                <span>Hướng mặt</span>
+                            </div>
+                            <div id="live-faces-list" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- Question Content Card -->
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                            <span>Nội dung đề bài trong PDF</span>
+                            <span id="panel-part-type" class="text-sky-400">Phần I • Trắc nghiệm</span>
+                        </div>
+                        <p id="panel-question-text" class="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium"></p>
+                        <div id="panel-options-container" class="space-y-2 pt-1"></div>
+                    </div>
+
+                    <!-- 3D Analysis & Answer Explanation -->
+                    <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-3.5 space-y-2">
+                        <div class="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>Hướng Dẫn Quan Sát Mô Hình 3D</span>
+                        </div>
+                        <p id="panel-3d-guide" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+
+                    <div class="bg-emerald-950/25 border border-emerald-500/30 rounded-2xl p-3.5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Đáp Án & Giải Thích Chi Tiết</span>
+                            <span id="panel-answer-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-extrabold border border-emerald-500/30">
+                                Đáp án: A
+                            </span>
+                        </div>
+                        <p id="panel-explanation" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ==================== COMPLETE APPLICATION LOGIC ==================== -->
+    <script>
+        // Self-healing DOM guard: removes any stray duplicate nodes outside #app-root
+        function ensureSingleCleanRoot() {
+            const root = document.getElementById('app-root');
+            if (!root) return;
+            Array.from(document.body.childNodes).forEach(node => {
+                if (node !== root && node.tagName !== 'SCRIPT') {
+                    node.remove();
+                }
+            });
+        }
+
+        // ============================================================================
+        // 1. COMPLETE DATABASE OF ALL 42 QUESTIONS & 3D SPECIFICATIONS FROM THE PDF
+        // ============================================================================
+        const MODELS_DATA = [
+            // ==================== PHẦN 1: 30 CÂU TRẮC NGHIỆM ====================
+            {
+                id: "p1_c1",
+                part: 1,
+                qNum: 1,
+                label: "Câu 1 - Phần 1",
+                shortTitle: "Hình biểu diễn của mặt phẳng (P)",
+                question: "Trong hình học không gian, để biểu diễn một mặt phẳng (P) trên bảng hoặc trên giấy như hình bên, người ta thường dùng hình nào sau đây?",
+                options: [
+                    "A. Một hình bình hành.",
+                    "B. Một hình tròn.",
+                    "C. Một đoạn thẳng.",
+                    "D. Một tia số."
+                ],
+                answer: "A",
+                explanation: "Theo quy ước trong SGK Toán 11 (Bài 10: Đường thẳng và mặt phẳng trong không gian), để biểu diễn một mặt phẳng (P) người ta thường dùng một hình bình hành và ghi tên mặt phẳng vào một góc của hình bình hành đó.",
+                guide3D: "Mô hình 3D hiển thị mặt phẳng (P) dưới dạng một hình bình hành màu xanh lam có 4 cạnh viền đóng vai trò biên biểu diễn và kí hiệu (P) ở góc trái dưới."
+            },
+            {
+                id: "p1_c2",
+                part: 1,
+                qNum: 2,
+                label: "Câu 2 - Phần 1",
+                shortTitle: "Kí hiệu mặt phẳng (α) bằng một góc",
+                question: "Cho mặt phẳng được biểu diễn bởi một góc như hình vẽ bên. Cách kí hiệu mặt phẳng nào sau đây là đúng quy ước trong sách giáo khoa?",
+                options: [
+                    "A. Mặt phẳng (α).",
+                    "B. Mặt phẳng [α].",
+                    "C. Mặt phẳng {α}.",
+                    "D. Mặt phẳng |α|."
+                ],
+                answer: "A",
+                explanation: "Ngoài hình bình hành, người ta còn biểu diễn mặt phẳng bằng một miền góc và ghi tên mặt phẳng trong dấu ngoặc đơn, ví dụ: mặt phẳng (α), mặt phẳng (β), mặt phẳng (P).",
+                guide3D: "Mô hình 3D dựng miền góc biểu diễn mặt phẳng (α) với 2 cạnh biên mở rộng và cung kí hiệu góc α đặc trưng như hình vẽ SGK."
+            },
+            {
+                id: "p1_c3",
+                part: 1,
+                qNum: 3,
+                label: "Câu 3 - Phần 1",
+                shortTitle: "Điểm A thuộc (P) và điểm B không thuộc (P)",
+                question: "Quan sát hình biểu diễn mặt phẳng (P) và hai điểm A, B như hình bên. Khẳng định nào sau đây là đúng?",
+                options: [
+                    "A. A ∈ (P) và B ∉ (P).",
+                    "B. A ∉ (P) và B ∈ (P).",
+                    "C. A ⊂ (P) và B ∉ (P).",
+                    "D. A ∈ (P) và B ∈ (P)."
+                ],
+                answer: "A",
+                explanation: "Quan sát hình vẽ: Điểm A nằm ngay trên mặt phẳng (P) nên A ∈ (P); điểm B nằm phía ngoài (phía trên) mặt phẳng (P) nên B ∉ (P). Giữa điểm và mặt phẳng dùng kí hiệu ∈ / ∉ chứ không dùng ⊂.",
+                guide3D: "Xoay mô hình 3D ngang tầm mắt hoặc nhìn từ dưới lên: Điểm A (màu xanh lá) nằm khít trên mặt phẳng (P), còn điểm B (màu đỏ cam) nằm lơ lửng phía trên; đoạn gióng từ B xuyên qua mặt phẳng (P) tự động hiển thị phần trên nét liền và phần dưới bị (P) che bằng nét đứt."
+            },
+            {
+                id: "p1_c4",
+                part: 1,
+                qNum: 4,
+                label: "Câu 4 - Phần 1",
+                shortTitle: "Điểm A thuộc mặt phẳng (P): A ∈ (P)",
+                question: "Cho điểm A thuộc mặt phẳng (P) như hình vẽ (A ∈ (P)). Cách phát biểu nào sau đây là SAI?",
+                options: [
+                    "A. Điểm A nằm ngoài (P).",
+                    "B. Điểm A nằm trên (P).",
+                    "C. Mặt phẳng (P) chứa A.",
+                    "D. Mặt phẳng (P) đi qua A."
+                ],
+                answer: "A",
+                explanation: "Khi A ∈ (P), ta nói: A thuộc (P), A nằm trên (P), (P) chứa A, hoặc (P) đi qua A. Phát biểu 'Điểm A nằm ngoài (P)' ứng với A ∉ (P) nên là phát biểu SAI.",
+                guide3D: "Điểm A nằm hoàn toàn trên bề mặt của mặt phẳng (P) kèm các vòng tròn đồng tâm minh họa mặt phẳng (P) đi qua / chứa điểm A."
+            },
+            {
+                id: "p1_c5",
+                part: 1,
+                qNum: 5,
+                label: "Câu 5 - Phần 1",
+                shortTitle: "Quy ước vẽ đường bị che khuất (Chóp S.ABC)",
+                question: "Khi vẽ hình biểu diễn của một hình không gian (như hình chóp tam giác đều ở hình bên), các đường bị che khuất được quy ước biểu diễn bằng nét gì?",
+                options: [
+                    "A. Nét đứt đoạn.",
+                    "B. Nét vẽ liền đậm.",
+                    "C. Nét vẽ liền mảnh.",
+                    "D. Nét lượn sóng."
+                ],
+                answer: "A",
+                explanation: "Quy tắc vẽ hình biểu diễn của hình không gian: Đường nhìn thấy vẽ bằng nét liền (━━), đường bị che khuất vẽ bằng nét đứt đoạn (╌╌).",
+                guide3D: "Trên hình chóp tam giác S.ABC ở góc nhìn chuẩn, cạnh AC nằm phía sau bị hai mặt bên (SAB) và (SBC) che khuất nên hiển thị bằng NÉT ĐỨT màu vàng cam. Hãy nhấn 'Lật 180°' hoặc xoay ra sau để thấy AC tự động biến thành NÉT LIỀN!"
+            },
+            {
+                id: "p1_c6",
+                part: 1,
+                qNum: 6,
+                label: "Câu 6 - Phần 1",
+                shortTitle: "Hình lập phương & Tính chất hai đường song song",
+                defaultCam: [3.6, 2.5, 5.8],
+                question: "Quan sát hình biểu diễn của hình lập phương như hình bên. Theo quy tắc vẽ hình biểu diễn của hình không gian, hình biểu diễn của hai đường thẳng song song là:",
+                options: [
+                    "A. Hai đường thẳng song song.",
+                    "B. Hai đường thẳng cắt nhau.",
+                    "C. Hai đường thẳng trùng nhau.",
+                    "D. Hai đường tròn đồng tâm."
+                ],
+                answer: "A",
+                explanation: "Quy tắc phép chiếu song song: Hình biểu diễn của hai đường thẳng song song là hai đường thẳng song song (hoặc trùng nhau trong trường hợp đặc biệt).",
+                guide3D: "Hình lập phương chuẩn ABCD.A'B'C'D' có 12 cạnh bằng nhau chia thành 3 nhóm song song (Xanh dương, Xanh lá, Cam). Ở góc nhìn chuẩn SGK: 9 cạnh nhìn thấy là nét liền và 3 cạnh xuất phát từ đỉnh khuất A phía sau (AB, AD, AA') tự động hiển thị bằng NÉT ĐỨT."
+            },
+            {
+                id: "p1_c7",
+                part: 1,
+                qNum: 7,
+                label: "Câu 7 - Phần 1",
+                shortTitle: "Xác định cạnh bị che khuất của hình chóp S.ABC",
+                question: "Quan sát hình biểu diễn của hình chóp tam giác S.ABC ở hình bên. Trong các cạnh sau đây, cạnh nào là cạnh bị che khuất?",
+                options: [
+                    "A. Cạnh AC.",
+                    "B. Cạnh SA.",
+                    "C. Cạnh AB.",
+                    "D. Cạnh BC."
+                ],
+                answer: "A",
+                explanation: "Trong hình biểu diễn hình chóp S.ABC, các cạnh SA, SB, SC, AB, BC được vẽ bằng nét liền (nhìn thấy), riêng cạnh đáy AC ở phía sau được vẽ bằng nét đứt đoạn vì bị mặt trước che khuất.",
+                guide3D: "Cạnh AC được đánh dấu nổi bật. Ở góc nhìn chính diện, AC bị hai mặt (SAB) và (SBC) che khuất nên là nét đứt. Khi bạn xoay ra mặt sau hoặc nhấn 'Nhìn từ đáy', AC lập tức trở thành nét liền."
+            },
+            {
+                id: "p1_c8",
+                part: 1,
+                qNum: 8,
+                label: "Câu 8 - Phần 1",
+                shortTitle: "Tiên đề đường thẳng qua 2 điểm phân biệt A, B",
+                question: "Theo tính chất thừa nhận, trong không gian cho hai điểm phân biệt A và B như hình vẽ. Có bao nhiêu đường thẳng đi qua hai điểm A và B?",
+                options: [
+                    "A. Có một và chỉ một.",
+                    "B. Có đúng hai đường thẳng.",
+                    "C. Có vô số đường thẳng.",
+                    "D. Không có đường thẳng nào."
+                ],
+                answer: "A",
+                explanation: "Tính chất thừa nhận 1: Có một và chỉ một đường thẳng đi qua hai điểm phân biệt cho trước.",
+                guide3D: "Mô hình 3D hiển thị hai điểm phân biệt A, B trong không gian và đường thẳng duy nhất d đi qua cả A và B."
+            },
+            {
+                id: "p1_c9",
+                part: 1,
+                qNum: 9,
+                label: "Câu 9 - Phần 1",
+                shortTitle: "Số đường thẳng qua 2 trong 3 điểm A, B, C",
+                question: "Cho ba điểm A, B, C không thẳng hàng như hình vẽ. Có bao nhiêu đường thẳng phân biệt đi qua hai điểm trong số ba điểm đã cho?",
+                options: [
+                    "A. 3.",
+                    "B. 1.",
+                    "C. 2.",
+                    "D. 6."
+                ],
+                answer: "A",
+                explanation: "Qua 3 điểm A, B, C không thẳng hàng, cứ qua 2 điểm kẻ được 1 đường thẳng nên có 3 đường thẳng phân biệt là: AB, BC và CA.",
+                guide3D: "Mô hình 3D hiển thị 3 điểm A, B, C không thẳng hàng cùng 3 đường thẳng phân biệt AB, BC, CA kéo dài về hai phía."
+            },
+            {
+                id: "p1_c10",
+                part: 1,
+                qNum: 10,
+                label: "Câu 10 - Phần 1",
+                shortTitle: "Mặt phẳng qua 3 điểm không thẳng hàng A, B, C",
+                question: "Theo tính chất thừa nhận, có bao nhiêu mặt phẳng đi qua ba điểm không thẳng hàng A, B, C như hình bên?",
+                options: [
+                    "A. Có một và chỉ một.",
+                    "B. Có đúng ba mặt phẳng.",
+                    "C. Có vô số mặt phẳng.",
+                    "D. Không có mặt phẳng nào."
+                ],
+                answer: "A",
+                explanation: "Tính chất thừa nhận 2: Có một và chỉ một mặt phẳng đi qua ba điểm không thẳng hàng cho trước, kí hiệu là mp(ABC) hay (ABC).",
+                guide3D: "Ba điểm A, B, C không thẳng hàng như 3 chân kiềng xác định duy nhất một mặt phẳng (ABC) trong không gian."
+            },
+            {
+                id: "p1_c11",
+                part: 1,
+                qNum: 11,
+                label: "Câu 11 - Phần 1",
+                shortTitle: "Chùm mặt phẳng qua 3 điểm thẳng hàng A, B, C",
+                question: "Cho ba điểm phân biệt A, B, C thẳng hàng (cùng nằm trên đường thẳng d) như hình vẽ. Có bao nhiêu mặt phẳng đi qua cả ba điểm A, B, C đó?",
+                options: [
+                    "A. Vô số.",
+                    "B. Duy nhất 1.",
+                    "C. Đúng 2.",
+                    "D. Đúng 3."
+                ],
+                answer: "A",
+                explanation: "Vì A, B, C thẳng hàng trên đường thẳng d nên bất kì mặt phẳng nào chứa d đều đi qua A, B, C. Trong không gian có vô số mặt phẳng cùng đi qua một đường thẳng d (chùm mặt phẳng).",
+                guide3D: "Mô hình 3D minh họa đường thẳng d chứa 3 điểm thẳng hàng A, B, C và chùm nhiều mặt phẳng (P1), (P2), (P3)... cùng xoay quanh trục d."
+            },
+            {
+                id: "p1_c12",
+                part: 1,
+                qNum: 12,
+                label: "Câu 12 - Phần 1",
+                shortTitle: "Bốn điểm A, B, C, D không đồng phẳng (Hình 4.5 SGK)",
+                question: "Cho bốn điểm A, B, C, D không cùng thuộc một mặt phẳng như hình vẽ (Hình 4.5 SGK). Khi đó ta nói bốn điểm A, B, C, D là bốn điểm:",
+                options: [
+                    "A. Không đồng phẳng.",
+                    "B. Đồng phẳng.",
+                    "C. Thẳng hàng.",
+                    "D. Trùng nhau."
+                ],
+                answer: "A",
+                explanation: "Theo định nghĩa trong SGK (Hình 4.5): Bốn điểm không cùng thuộc một mặt phẳng được gọi là bốn điểm không đồng phẳng.",
+                guide3D: "Ba điểm A, B, C nằm trên mặt đáy, còn điểm D ở phía trên tạo thành tứ diện D.ABC. Cạnh AC ở phía sau bị che khuất nên hiển thị nét đứt."
+            },
+            {
+                id: "p1_c13",
+                part: 1,
+                qNum: 13,
+                label: "Câu 13 - Phần 1",
+                shortTitle: "Số mặt phẳng qua 3 trong 4 điểm A, B, C, D",
+                question: "Cho bốn điểm A, B, C, D không đồng phẳng như hình bên. Có bao nhiêu mặt phẳng đi qua ba trong số bốn điểm đã cho?",
+                options: [
+                    "A. 4.",
+                    "B. 3.",
+                    "C. 6.",
+                    "D. 1."
+                ],
+                answer: "A",
+                explanation: "Bốn điểm A, B, C, D không đồng phẳng nên bất kỳ 3 điểm nào cũng không thẳng hàng. Số mặt phẳng tạo thành là C(4,3) = 4 mặt phẳng: (ABC), (DAB), (DBC), (DAC).",
+                guide3D: "4 mặt phẳng của tứ diện D.ABC được tô 4 màu trong suốt khác nhau, cạnh AC ở mặt sau tự động hiển thị bằng nét đứt."
+            },
+            {
+                id: "p1_c14",
+                part: 1,
+                qNum: 14,
+                label: "Câu 14 - Phần 1",
+                shortTitle: "Mặt phẳng đi qua các đỉnh của tứ giác ABCD",
+                question: "Cho tứ giác ABCD như hình bên. Có bao nhiêu mặt phẳng đi qua ba trong số bốn đỉnh A, B, C, D của tứ giác đó?",
+                options: [
+                    "A. 1.",
+                    "B. 4.",
+                    "C. 2.",
+                    "D. 3."
+                ],
+                answer: "A",
+                explanation: "Tứ giác là một hình phẳng nên 4 đỉnh A, B, C, D của tứ giác ABCD đồng phẳng (cùng thuộc một mặt phẳng duy nhất).",
+                guide3D: "Xoay 3D để kiểm chứng cả 4 đỉnh A, B, C, D và hai đường chéo AC, BD của tứ giác phẳng ABCD đều nằm khít trên duy nhất 1 mặt phẳng."
+            },
+            {
+                id: "p1_c15",
+                part: 1,
+                qNum: 15,
+                label: "Câu 15 - Phần 1",
+                shortTitle: "Đường thẳng d có 2 điểm A, B thuộc mặt phẳng (P)",
+                question: "Nếu đường thẳng d có hai điểm phân biệt A, B thuộc mặt phẳng (P) như hình bên thì mọi điểm của d đều thuộc (P). Khi đó ta kí hiệu:",
+                options: [
+                    "A. d ⊂ (P).",
+                    "B. d ∈ (P).",
+                    "C. (P) ⊂ d.",
+                    "D. d ∉ (P)."
+                ],
+                answer: "A",
+                explanation: "Tính chất thừa nhận 3: Nếu một đường thẳng có hai điểm phân biệt thuộc một mặt phẳng thì mọi điểm của đường thẳng đều thuộc mặt phẳng đó, kí hiệu d ⊂ (P).",
+                guide3D: "Đường thẳng d đi qua 2 điểm A, B nằm trên mặt phẳng (P) nên toàn bộ đường thẳng d nằm gọn trong mặt phẳng (P)."
+            },
+            {
+                id: "p1_c16",
+                part: 1,
+                qNum: 16,
+                label: "Câu 16 - Phần 1",
+                shortTitle: "Tam giác ABC và điểm M ∈ BC (Hình 4.6 SGK)",
+                question: "Cho tam giác ABC và một điểm M thuộc đường thẳng BC như hình vẽ (Hình 4.6 SGK). Khẳng định nào sau đây là đúng?",
+                options: [
+                    "A. M ∈ (ABC) và AM ⊂ (ABC).",
+                    "B. M ∉ (ABC).",
+                    "C. AM ∉ (ABC).",
+                    "D. BC ∉ (ABC)."
+                ],
+                answer: "A",
+                explanation: "Vì B, C ∈ (ABC) nên BC ⊂ (ABC). Mà M ∈ BC nên M ∈ (ABC). Tiếp theo, đường thẳng AM có hai điểm A, M ∈ (ABC) nên AM ⊂ (ABC).",
+                guide3D: "Điểm M nằm trên phần kéo dài của cạnh BC ngoài đoạn BC; cả điểm M và đường thẳng AM đều nằm hoàn toàn trong mặt phẳng (ABC)."
+            },
+            {
+                id: "p1_c17",
+                part: 1,
+                qNum: 17,
+                label: "Câu 17 - Phần 1",
+                shortTitle: "Giao tuyến d của hai mặt phẳng (P) và (Q)",
+                question: "Cho hai mặt phẳng phân biệt (P) và (Q) có đường thẳng chung d như hình bên. Đường thẳng d được gọi là gì của (P) và (Q)?",
+                options: [
+                    "A. Giao tuyến, d = (P) ∩ (Q).",
+                    "B. Giao điểm, d ∈ (P) ∩ (Q).",
+                    "C. Cạnh bên của (P) và (Q).",
+                    "D. Hợp của (P) và (Q)."
+                ],
+                answer: "A",
+                explanation: "Hai mặt phẳng phân biệt có điểm chung thì tập hợp tất cả các điểm chung của chúng là một đường thẳng d, gọi là giao tuyến của hai mặt phẳng đó, kí hiệu d = (P) ∩ (Q).",
+                guide3D: "Hai mặt phẳng (P) (xanh dương) và (Q) (tím hồng) cắt nhau theo giao tuyến d màu vàng rực; phần cạnh của mặt phẳng bị mặt kia che tự động chuyển sang nét đứt khi xoay!"
+            },
+            {
+                id: "p1_c18",
+                part: 1,
+                qNum: 18,
+                label: "Câu 18 - Phần 1",
+                shortTitle: "Giao tuyến của (SBN) và (SCM) qua trọng tâm G",
+                question: "Cho tam giác ABC và điểm S ∉ (ABC). Gọi M, N lần lượt là trung điểm của AB, AC và G là trọng tâm tam giác ABC (Hình 4.8 SGK). Giao tuyến của hai mặt phẳng (SBN) và (SCM) là:",
+                options: [
+                    "A. Đường thẳng SG.",
+                    "B. Đường thẳng SM.",
+                    "C. Đường thẳng SN.",
+                    "D. Đường thẳng MN."
+                ],
+                answer: "A",
+                explanation: "Hai mặt phẳng (SBN) và (SCM) có điểm chung thứ nhất là S. Trong mp(ABC), hai đường trung tuyến BN và CM cắt nhau tại trọng tâm G nên G ∈ BN ⊂ (SBN) và G ∈ CM ⊂ (SCM) ⇒ G là điểm chung thứ hai. Vậy (SBN) ∩ (SCM) = SG.",
+                guide3D: "Quan sát hai mặt phẳng (SBN) và (SCM) giao nhau bên trong hình chóp theo đường thẳng SG (màu hồng đậm, hiển thị nét đứt vì nằm trong lòng khối chóp)."
+            },
+            {
+                id: "p1_c19",
+                part: 1,
+                qNum: 19,
+                label: "Câu 19 - Phần 1",
+                shortTitle: "Giao tuyến của hai mặt phẳng (SBM) và (SCN)",
+                question: "Cho tam giác ABC và điểm S ∉ (ABC). Gọi M, N lần lượt là trung điểm của các cạnh AB, AC như hình bên (Luyện tập 3 SGK). Giao tuyến của hai mặt phẳng (SBM) và (SCN) là:",
+                options: [
+                    "A. Đường thẳng SA.",
+                    "B. Đường thẳng SB.",
+                    "C. Đường thẳng SC.",
+                    "D. Đường thẳng BC."
+                ],
+                answer: "A",
+                explanation: "Vì M là trung điểm AB nên đường thẳng BM chính là đường thẳng AB ⇒ mp(SBM) trùng với mp(SAB). Tương tự, N là trung điểm AC nên mp(SCN) trùng với mp(SAC). Giao tuyến của (SAB) và (SAC) là đường thẳng SA.",
+                guide3D: "Mặt phẳng (SBM) chính là mặt bên (SAB), còn (SCN) chính là mặt bên (SAC). Hai mặt bên này cắt nhau theo cạnh bên SA."
+            },
+            {
+                id: "p1_c20",
+                part: 1,
+                qNum: 20,
+                label: "Câu 20 - Phần 1",
+                shortTitle: "Mặt phẳng xác định bởi điểm A và đường thẳng d",
+                question: "Quan sát Hình 4.9 SGK ở bên. Một mặt phẳng được hoàn toàn xác định khi biết nó đi qua một điểm A và chứa một đường thẳng d thỏa mãn điều kiện nào?",
+                options: [
+                    "A. Đường thẳng d không đi qua A.",
+                    "B. Đường thẳng d đi qua A.",
+                    "C. Điểm A thuộc đường thẳng d.",
+                    "D. Điểm A là trung điểm trên d."
+                ],
+                answer: "A",
+                explanation: "Một mặt phẳng được hoàn toàn xác định khi biết nó đi qua một điểm A và chứa một đường thẳng d không đi qua điểm A đó, kí hiệu là mp(A, d).",
+                guide3D: "Trên đường thẳng d lấy 2 điểm B, C phân biệt. Vì A ∉ d nên A, B, C không thẳng hàng, xác định duy nhất mặt phẳng mp(A, d)."
+            },
+            {
+                id: "p1_c21",
+                part: 1,
+                qNum: 21,
+                label: "Câu 21 - Phần 1",
+                shortTitle: "Kí hiệu mặt phẳng xác định bởi 2 đường cắt nhau a, b",
+                question: "Mặt phẳng được xác định bởi hai đường thẳng cắt nhau a và b như hình bên được kí hiệu theo sách giáo khoa là:",
+                options: [
+                    "A. mp(a, b).",
+                    "B. mp(a ∩ b).",
+                    "C. (a ⊂ b).",
+                    "D. a ∈ b."
+                ],
+                answer: "A",
+                explanation: "Theo quy ước SGK Toán 11: Mặt phẳng xác định bởi hai đường thẳng cắt nhau a và b được kí hiệu là mp(a, b).",
+                guide3D: "Hai đường thẳng a và b cắt nhau tại một điểm duy nhất và cùng nằm trên mặt phẳng mp(a, b)."
+            },
+            {
+                id: "p1_c22",
+                part: 1,
+                qNum: 22,
+                label: "Câu 22 - Phần 1",
+                shortTitle: "Giao tuyến của mp(S, a) và mp(S, b) (Hình 4.10 SGK)",
+                question: "Cho hai đường thẳng a, b cắt nhau tại M và điểm S không thuộc mp(a, b) như Hình 4.10 SGK. Giao tuyến của mp(S, a) và mp(S, b) là:",
+                options: [
+                    "A. Đường thẳng SM.",
+                    "B. Đường thẳng a.",
+                    "C. Đường thẳng b.",
+                    "D. Đường thẳng AB."
+                ],
+                answer: "A",
+                explanation: "Hai mặt phẳng mp(S, a) và mp(S, b) có điểm chung thứ nhất là S. Vì M = a ∩ b nên M ∈ a ⊂ mp(S, a) và M ∈ b ⊂ mp(S, b) ⇒ M là điểm chung thứ hai. Vậy giao tuyến là đường thẳng SM.",
+                guide3D: "Mặt phẳng mp(S, a) và mp(S, b) dựng đứng trên hai đường thẳng a, b và giao nhau dọc theo đường thẳng SM."
+            },
+            {
+                id: "p1_c23",
+                part: 1,
+                qNum: 23,
+                label: "Câu 23 - Phần 1",
+                shortTitle: "Đường thẳng DE với D ∈ SA, E ∈ SB thuộc (SAB)",
+                question: "Cho tam giác ABC và điểm S ∉ (ABC). Lấy D, E lần lượt thuộc các cạnh SA, SB (D, E khác S) như hình bên. Đường thẳng DE nằm trong mặt phẳng nào sau đây?",
+                options: [
+                    "A. Mặt phẳng (SAB).",
+                    "B. Mặt phẳng (ABC).",
+                    "C. Mặt phẳng (SBC).",
+                    "D. Mặt phẳng (SAC)."
+                ],
+                answer: "A",
+                explanation: "Vì D ∈ SA ⊂ (SAB) và E ∈ SB ⊂ (SAB) nên hai điểm phân biệt D, E cùng thuộc mặt phẳng (SAB). Do đó đường thẳng DE nằm trong mặt phẳng (SAB).",
+                guide3D: "Đoạn thẳng DE nằm hoàn toàn trên mặt bên (SAB). Khi xoay hình chóp, nếu mặt (SAB) quay ra phía sau bị che khuất thì DE cũng tự động chuyển sang nét đứt!"
+            },
+            {
+                id: "p1_c24",
+                part: 1,
+                qNum: 24,
+                label: "Câu 24 - Phần 1",
+                shortTitle: "Mặt đáy ABCD của hình chóp tứ giác S.ABCD",
+                question: "Cho hình chóp tứ giác S.ABCD như Hình 4.11 SGK. Trong hình chóp này, tứ giác ABCD được gọi là gì?",
+                options: [
+                    "A. Mặt đáy.",
+                    "B. Mặt bên.",
+                    "C. Cạnh bên.",
+                    "D. Đỉnh của hình chóp."
+                ],
+                answer: "A",
+                explanation: "Trong hình chóp tứ giác S.ABCD, điểm S gọi là đỉnh, tứ giác ABCD gọi là mặt đáy, các tam giác SAB, SBC, SCD, SDA gọi là các mặt bên.",
+                guide3D: "Hình chóp tứ giác S.ABCD có mặt đáy là hình thang/tứ giác lồi ABCD. Cạnh đáy lớn AD ở phía sau bị các mặt bên che khuất nên hiển thị bằng nét đứt."
+            },
+            {
+                id: "p1_c25",
+                part: 1,
+                qNum: 25,
+                label: "Câu 25 - Phần 1",
+                shortTitle: "Tổng số cạnh của hình chóp tứ giác S.ABCD",
+                question: "Cho hình chóp tứ giác S.ABCD như hình bên (Ví dụ 5 SGK). Hình chóp S.ABCD có tất cả bao nhiêu cạnh?",
+                options: [
+                    "A. 8 cạnh.",
+                    "B. 4 cạnh.",
+                    "C. 5 cạnh.",
+                    "D. 6 cạnh."
+                ],
+                answer: "A",
+                explanation: "Hình chóp tứ giác S.ABCD có 4 cạnh bên (SA, SB, SC, SD) và 4 cạnh đáy (AB, BC, CD, DA). Tổng cộng có 4 + 4 = 8 cạnh.",
+                guide3D: "Mô hình phân biệt rõ 4 cạnh bên (màu xanh dương) và 4 cạnh đáy (màu xanh lục), trong đó cạnh AD ở phía sau tự động hiển thị bằng nét đứt."
+            },
+            {
+                id: "p1_c26",
+                part: 1,
+                qNum: 26,
+                label: "Câu 26 - Phần 1",
+                shortTitle: "Mặt bên của hình chóp S.ABCD đáy hình bình hành",
+                question: "Cho hình chóp tứ giác S.ABCD có đáy là hình bình hành ABCD như hình bên. Tam giác nào sau đây là một mặt bên của hình chóp S.ABCD?",
+                options: [
+                    "A. Tam giác SBC.",
+                    "B. Tam giác ABC.",
+                    "C. Tam giác SAC.",
+                    "D. Tam giác SBD."
+                ],
+                answer: "A",
+                explanation: "Hình chóp S.ABCD có 4 mặt bên là các tam giác: SAB, SBC, SCD, SDA. Tam giác SBC là một mặt bên.",
+                guide3D: "Đáy ABCD là hình bình hành với đỉnh A ở góc trái trong bị che khuất, do đó 3 cạnh xuất phát từ A là SA, AB, AD tự động hiển thị bằng nét đứt đúng chuẩn hình vẽ trang 4 PDF!"
+            },
+            {
+                id: "p1_c27",
+                part: 1,
+                qNum: 27,
+                label: "Câu 27 - Phần 1",
+                shortTitle: "Số mặt và số cạnh của hình tứ diện ABCD",
+                question: "Cho bốn điểm A, B, C, D không đồng phẳng tạo thành hình tứ diện ABCD như hình bên. Hình tứ diện ABCD có bao nhiêu mặt và bao nhiêu cạnh?",
+                options: [
+                    "A. 4 mặt và 6 cạnh.",
+                    "B. 4 mặt và 4 cạnh.",
+                    "C. 6 mặt và 4 cạnh.",
+                    "D. 5 mặt và 8 cạnh."
+                ],
+                answer: "A",
+                explanation: "Hình tứ diện ABCD có 4 đỉnh (A, B, C, D), 4 mặt tam giác ((ABC), (ABD), (ACD), (BCD)) và 6 cạnh (AB, AC, AD, BC, CD, BD).",
+                guide3D: "Quan sát hình tứ diện ABCD với đỉnh A ở trên và đáy BCD ở dưới; cạnh BD ở phía sau bị che khuất nên hiển thị nét đứt."
+            },
+            {
+                id: "p1_c28",
+                part: 1,
+                qNum: 28,
+                label: "Câu 28 - Phần 1",
+                shortTitle: "Cặp cạnh đối diện AB và CD trong tứ diện ABCD",
+                question: "Trong hình tứ diện ABCD như hình bên, hai cạnh không có đỉnh chung được gọi là hai cạnh đối diện. Cạnh đối diện với cạnh AB là cạnh nào?",
+                options: [
+                    "A. Cạnh CD.",
+                    "B. Cạnh BC.",
+                    "C. Cạnh AC.",
+                    "D. Cạnh BD."
+                ],
+                answer: "A",
+                explanation: "Trong tứ diện ABCD, cạnh không có chung đỉnh nào với cạnh AB chính là cạnh CD.",
+                guide3D: "Cặp cạnh đối diện AB và CD được tô nổi bật để bạn thấy rõ chúng chéo nhau trong không gian và không có đỉnh chung."
+            },
+            {
+                id: "p1_c29",
+                part: 1,
+                qNum: 29,
+                label: "Câu 29 - Phần 1",
+                shortTitle: "Giao tuyến MN của (ABM) và (SCD) với N = AB ∩ CD",
+                question: "Cho hình chóp tứ giác S.ABCD và M thuộc cạnh SC (M khác S, C). Giả sử AB cắt CD tại N như hình bên (Bài 4.4 SGK). Giao tuyến của hai mặt phẳng (ABM) và (SCD) là:",
+                options: [
+                    "A. Đường thẳng MN.",
+                    "B. Đường thẳng SN.",
+                    "C. Đường thẳng AM.",
+                    "D. Đường thẳng BM."
+                ],
+                answer: "A",
+                explanation: "Điểm M ∈ (ABM) và M ∈ SC ⊂ (SCD) nên M là điểm chung thứ nhất. Vì N = AB ∩ CD nên N ∈ AB ⊂ (ABM) và N ∈ CD ⊂ (SCD) ⇒ N là điểm chung thứ hai. Vậy (ABM) ∩ (SCD) = MN.",
+                guide3D: "Hai cạnh đáy AB và CD kéo dài cắt nhau tại N ở phía trước đáy. Đường thẳng MN nối M trên SC với N chính là giao tuyến của (ABM) và (SCD)."
+            },
+            {
+                id: "p1_c30",
+                part: 1,
+                qNum: 30,
+                label: "Câu 30 - Phần 1",
+                shortTitle: "Giao điểm N = BF ∩ (ACD) trong tứ diện ABCD",
+                question: "Cho hình tứ diện ABCD, điểm E nằm trong tam giác BCD, điểm F nằm giữa A và E (Hình 4.12 SGK). Gọi M = BE ∩ CD. Giao điểm N của đường thẳng BF và mặt phẳng (ACD) là giao điểm của BF với đường thẳng nào?",
+                options: [
+                    "A. Đường thẳng AM.",
+                    "B. Đường thẳng AC.",
+                    "C. Đường thẳng AD.",
+                    "D. Đường thẳng CD."
+                ],
+                answer: "A",
+                explanation: "Xét mặt phẳng phụ (ABE): vì M = BE ∩ CD nên M ∈ (ABE) và M ∈ (ACD) ⇒ (ABE) ∩ (ACD) = AM. Trong mp(ABE), đường thẳng BF cắt AM tại N. Do AM ⊂ (ACD) nên N chính là giao điểm của BF và (ACD).",
+                guide3D: "Các đoạn AE, BE, BF nằm bên trong lòng tứ diện ABCD nên hiển thị bằng NÉT ĐỨT; còn đường thẳng AM nằm trên mặt bên (ACD) ở phía trước nên hiển thị bằng NÉT LIỀN đúng chuẩn Hình 4.12 SGK!"
+            },
+
+            // ==================== PHẦN 2: 6 CÂU ĐÚNG / SAI ====================
+            {
+                id: "p2_c1",
+                part: 2,
+                qNum: 1,
+                label: "Câu 1 - Phần 2",
+                shortTitle: "Đường thẳng a ⊂ (P) và đường thẳng b cắt (P) tại A",
+                question: "Trong không gian, cho mặt phẳng (P), đường thẳng a đi qua hai điểm phân biệt A, B cùng thuộc (P), và đường thẳng b cắt đường thẳng a tại A nhưng đi qua điểm C ∉ (P) như hình vẽ (Bài tập 4.1 SGK). Xét tính Đúng/Sai:",
+                statements: [
+                    { text: "a) Điểm A thuộc mặt phẳng (P), được kí hiệu là A ∈ (P).", isTrue: true },
+                    { text: "b) Đường thẳng a có hai điểm phân biệt A, B thuộc (P) nên a ⊂ (P).", isTrue: true },
+                    { text: "c) Điểm C không thuộc mặt phẳng (P), được kí hiệu là C ∉ (P).", isTrue: true },
+                    { text: "d) Vì đường thẳng b cắt đường thẳng a tại A ∈ (P) nên đường thẳng b cũng nằm trong (P).", isTrue: false }
+                ],
+                answer: "a) Đúng, b) Đúng, c) Đúng, d) Sai",
+                explanation: "Ý d) Sai vì đường thẳng b đi qua điểm C ∉ (P) nên b không nằm trong (P) mà b cắt mặt phẳng (P) tại điểm duy nhất A.",
+                guide3D: "Đường thẳng b đi từ C xuyên qua mặt phẳng (P) tại giao điểm A: phần phía trên mặt phẳng (P) là nét liền, phần xuyên xuống dưới bị mặt phẳng (P) che khuất tự động hiển thị bằng nét đứt!"
+            },
+            {
+                id: "p2_c2",
+                part: 2,
+                qNum: 2,
+                label: "Câu 2 - Phần 2",
+                shortTitle: "Tứ diện S.ABC và điểm M nằm trên cạnh BC",
+                question: "Cho bốn điểm S, A, B, C không đồng phẳng và điểm M nằm trên đoạn thẳng BC (M khác B, C) như hình vẽ (Ví dụ 1 & 2 SGK). Xét tính Đúng/Sai:",
+                statements: [
+                    { text: "a) Có duy nhất một mặt phẳng đi qua ba điểm không thẳng hàng A, B, C.", isTrue: true },
+                    { text: "b) Có tất cả 4 mặt phẳng phân biệt đi qua ba trong số bốn điểm S, A, B, C.", isTrue: true },
+                    { text: "c) Bốn điểm A, B, C, M là bốn điểm không đồng phẳng.", isTrue: false },
+                    { text: "d) Đường thẳng SM nằm hoàn toàn trong mặt phẳng (SBC).", isTrue: true }
+                ],
+                answer: "a) Đúng, b) Đúng, c) Sai, d) Đúng",
+                explanation: "Ý c) Sai vì M ∈ BC ⊂ (ABC) nên bốn điểm A, B, C, M cùng thuộc mặt phẳng (ABC) (đồng phẳng). Ý d) Đúng vì S ∈ (SBC) và M ∈ BC ⊂ (SBC) nên SM ⊂ (SBC).",
+                guide3D: "Trong hình chóp S.ABC: đường SM nằm trên mặt bên (SBC) phía trước nên là nét liền, còn đường AM nằm trên mặt đáy (ABC) bị che khuất nên là nét đứt."
+            },
+            {
+                id: "p2_c3",
+                part: 2,
+                qNum: 3,
+                label: "Câu 3 - Phần 2",
+                shortTitle: "Tam giác ABC với M ∈ BC và N ∈ AB",
+                question: "Cho tam giác ABC, điểm M thuộc đường thẳng BC (M khác B, C) và điểm N thuộc cạnh AB (N khác A, B) như hình vẽ. Xét tính Đúng/Sai:",
+                statements: [
+                    { text: "a) Đường thẳng BC có hai điểm phân biệt B, C thuộc mặt phẳng (ABC) nên BC ⊂ (ABC).", isTrue: true },
+                    { text: "b) Điểm M thuộc đường thẳng BC nên điểm M cũng thuộc mặt phẳng (ABC).", isTrue: true },
+                    { text: "c) Đường thẳng AM không nằm trong mặt phẳng (ABC).", isTrue: false },
+                    { text: "d) Đường thẳng MN nằm trong mặt phẳng (ABC).", isTrue: true }
+                ],
+                answer: "a) Đúng, b) Đúng, c) Sai, d) Đúng",
+                explanation: "Vì A, M, N đều thuộc mặt phẳng (ABC) nên cả hai đường thẳng AM và MN đều nằm hoàn toàn trong mặt phẳng (ABC). Do đó ý c) Sai.",
+                guide3D: "Xoay mặt phẳng (ABC) trong không gian 3D để thấy tam giác ABC, điểm M trên BC, điểm N trên AB cùng các đường thẳng AM, MN đều đồng phẳng."
+            },
+            {
+                id: "p2_c4",
+                part: 2,
+                qNum: 4,
+                label: "Câu 4 - Phần 2",
+                shortTitle: "Hình chóp S.ABC với trọng tâm G của đáy ABC",
+                question: "Cho tam giác ABC và một điểm S không thuộc mặt phẳng (ABC). Gọi M, N lần lượt là trung điểm của AB, AC và G là giao điểm của BN và CM như Hình 4.8 SGK. Xét tính Đúng/Sai:",
+                statements: [
+                    { text: "a) Điểm G là trọng tâm của tam giác ABC.", isTrue: true },
+                    { text: "b) Điểm G thuộc BN nên G ∈ (SBN), đồng thời G thuộc CM nên G ∈ (SCM).", isTrue: true },
+                    { text: "c) Giao tuyến của hai mặt phẳng (SBN) và (SCM) là đường thẳng MN.", isTrue: false },
+                    { text: "d) Giao tuyến của hai mặt phẳng (SBM) và (SCN) là đường thẳng SA.", isTrue: true }
+                ],
+                answer: "a) Đúng, b) Đúng, c) Sai, d) Đúng",
+                explanation: "Ý c) Sai vì giao tuyến của (SBN) và (SCM) là đường thẳng SG chứ không phải MN. Ý d) Đúng vì (SBM) ≡ (SAB) và (SCN) ≡ (SAC) nên giao tuyến của chúng là SA.",
+                guide3D: "Mô hình 3D hiển thị đầy đủ cả hai giao tuyến quan trọng: SG = (SBN) ∩ (SCM) (nét đứt bên trong chóp) và SA = (SBM) ∩ (SCN) (cạnh bên nét liền)."
+            },
+            {
+                id: "p2_c5",
+                part: 2,
+                qNum: 5,
+                label: "Câu 5 - Phần 2",
+                shortTitle: "Hai đường thẳng a, b cắt nhau tại M, đường c cắt a, b và điểm S",
+                question: "Cho hai đường thẳng a, b cắt nhau tại M. Vẽ đường thẳng c cắt a tại A và cắt b tại B (A, B khác M). Gọi S là một điểm không thuộc mp(a, b) như hình vẽ. Xét tính Đúng/Sai:",
+                statements: [
+                    { text: "a) Hai đường thẳng cắt nhau a và b xác định duy nhất mặt phẳng mp(a, b).", isTrue: true },
+                    { text: "b) Đường thẳng c đi qua hai điểm phân biệt A, B ∈ mp(a, b) nên c ⊂ mp(a, b).", isTrue: true },
+                    { text: "c) Giao tuyến của hai mặt phẳng mp(S, a) và mp(S, b) là đường thẳng AB.", isTrue: false },
+                    { text: "d) Giao tuyến của hai mặt phẳng mp(S, a) và mp(S, c) là đường thẳng SA.", isTrue: true }
+                ],
+                answer: "a) Đúng, b) Đúng, c) Sai, d) Đúng",
+                explanation: "Ý c) Sai vì giao tuyến của mp(S, a) và mp(S, b) là đường thẳng SM. Ý d) Đúng vì A = a ∩ c nên hai mặt phẳng mp(S, a) và mp(S, c) có hai điểm chung là S và A ⇒ giao tuyến là SA.",
+                guide3D: "Trên mặt phẳng mp(a, b) có 3 đường thẳng a, b, c tạo thành tam giác MAB; từ đỉnh S phía trên nối xuống M, A, B tạo thành các giao tuyến SM, SA, SB."
+            },
+            {
+                id: "p2_c6",
+                part: 2,
+                qNum: 6,
+                label: "Câu 6 - Phần 2",
+                shortTitle: "Hình chóp S.ABCD đáy hình bình hành tâm O",
+                question: "Cho hình chóp tứ giác S.ABCD có đáy ABCD là hình bình hành tâm O (với O là giao điểm của AC và BD) như hình vẽ. Xét tính Đúng/Sai:",
+                statements: [
+                    { text: "a) Hình chóp S.ABCD có 4 mặt bên và 1 mặt đáy.", isTrue: true },
+                    { text: "b) Các cạnh bên của hình chóp S.ABCD là SA, SB, SC, SD.", isTrue: true },
+                    { text: "c) Hình chóp S.ABCD có tất cả 6 cạnh.", isTrue: false },
+                    { text: "d) Giao tuyến của hai mặt phẳng (SAC) và (SBD) là đường thẳng SO.", isTrue: true }
+                ],
+                answer: "a) Đúng, b) Đúng, c) Sai, d) Đúng",
+                explanation: "Ý c) Sai vì hình chóp tứ giác S.ABCD có 8 cạnh (4 cạnh bên + 4 cạnh đáy). Ý d) Đúng vì S và O = AC ∩ BD là hai điểm chung của (SAC) và (SBD) nên (SAC) ∩ (SBD) = SO.",
+                guide3D: "Hai mặt phẳng chéo (SAC) và (SBD) cắt nhau theo giao tuyến SO (màu vàng cam, nét đứt bên trong khối chóp)."
+            },
+
+            // ==================== PHẦN 3: 6 CÂU TRẢ LỜI NGẮN ====================
+            {
+                id: "p3_c1",
+                part: 3,
+                qNum: 1,
+                label: "Câu 1 - Phần 3",
+                shortTitle: "Số mặt phẳng đi qua 3 trong 4 điểm A, B, C, D",
+                question: "Cho bốn điểm A, B, C, D không đồng phẳng như Hình 4.5 SGK. Có bao nhiêu mặt phẳng phân biệt đi qua ba trong số bốn điểm đã cho?",
+                shortAnswer: "4",
+                answer: "4",
+                explanation: "Bốn điểm A, B, C, D không đồng phẳng tạo thành tứ diện ABCD gồm 4 mặt phẳng phân biệt đi qua 3 trong 4 điểm: (ABC), (ABD), (ACD) và (BCD). Đáp số: 4.",
+                guide3D: "Tứ diện D.ABC với 4 mặt tam giác được tô màu trực quan để bạn đếm và kiểm tra."
+            },
+            {
+                id: "p3_c2",
+                part: 3,
+                qNum: 2,
+                label: "Câu 2 - Phần 3",
+                shortTitle: "Số đường thẳng qua 2 trong 4 điểm A và B, C, D ∈ d",
+                question: "Trong mặt phẳng (P), cho đường thẳng d và điểm A không thuộc d. Trên đường thẳng d lấy ba điểm phân biệt B, C, D như hình vẽ. Cứ qua hai điểm trong bốn điểm A, B, C, D ta kẻ một đường thẳng. Hỏi có tất cả bao nhiêu đường thẳng phân biệt được tạo thành?",
+                shortAnswer: "4",
+                answer: "4",
+                explanation: "Nối điểm A với 3 điểm B, C, D trên d ta được 3 đường thẳng phân biệt: AB, AC, AD. Ba điểm B, C, D thẳng hàng nên chỉ tạo thành 1 đường thẳng duy nhất là d. Tổng cộng có 3 + 1 = 4 đường thẳng phân biệt.",
+                guide3D: "Mô hình 3D biểu diễn mặt phẳng (P), đường thẳng d chứa B, C, D và 3 đường thẳng AB, AC, AD xuất phát từ A. Tổng cộng có 4 đường thẳng."
+            },
+            {
+                id: "p3_c3",
+                part: 3,
+                qNum: 3,
+                label: "Câu 3 - Phần 3",
+                shortTitle: "Tổng số mặt và số đỉnh của hình chóp tứ giác S.ABCD",
+                question: "Cho hình chóp tứ giác S.ABCD như Hình 4.11 SGK. Tổng số mặt (gồm cả mặt bên và mặt đáy) và số đỉnh của hình chóp S.ABCD bằng bao nhiêu?",
+                shortAnswer: "10",
+                answer: "10",
+                explanation: "Hình chóp tứ giác S.ABCD có 5 mặt (4 mặt bên + 1 mặt đáy) và 5 đỉnh (S, A, B, C, D). Vậy tổng số mặt và số đỉnh là 5 + 5 = 10.",
+                guide3D: "Quan sát 5 đỉnh (S, A, B, C, D) và 5 mặt của hình chóp tứ giác S.ABCD trong không gian 3D."
+            },
+            {
+                id: "p3_c4",
+                part: 3,
+                qNum: 4,
+                label: "Câu 4 - Phần 3",
+                shortTitle: "Số cặp cạnh đối diện của hình tứ diện ABCD",
+                question: "Cho hình tứ diện ABCD như hình vẽ bên. Trong hình tứ diện, hai cạnh không có đỉnh chung được gọi là một cặp cạnh đối diện. Hỏi hình tứ diện ABCD có tất cả bao nhiêu cặp cạnh đối diện?",
+                shortAnswer: "3",
+                answer: "3",
+                explanation: "Hình tứ diện ABCD có 6 cạnh chia làm 3 cặp cạnh đối diện từng đôi một không chung đỉnh: (AB và CD), (AC và BD), (AD và BC). Đáp số: 3.",
+                guide3D: "Mô hình 3D tô 3 màu riêng biệt cho 3 cặp cạnh đối diện của tứ diện ABCD: Cặp 1 (AB & CD - Đỏ hồng), Cặp 2 (AC & BD - Xanh dương), Cặp 3 (AD & BC - Xanh lá)."
+            },
+            {
+                id: "p3_c5",
+                part: 3,
+                qNum: 5,
+                label: "Câu 5 - Phần 3",
+                shortTitle: "Tổng số cạnh của hình chóp ngũ giác S.ABCDE",
+                question: "Cho hình chóp ngũ giác S.ABCDE có mặt đáy ABCDE là một ngũ giác lồi như hình vẽ bên. Hình chóp S.ABCDE có tất cả bao nhiêu cạnh (tính cả cạnh bên và cạnh đáy)?",
+                shortAnswer: "10",
+                answer: "10",
+                explanation: "Hình chóp ngũ giác S.ABCDE có 5 cạnh bên (SA, SB, SC, SD, SE) và 5 cạnh đáy (AB, BC, CD, DE, EA). Tổng số cạnh là 5 + 5 = 10 cạnh.",
+                guide3D: "Hình chóp ngũ giác S.ABCDE có đỉnh E ở phía sau, nên 3 cạnh xuất phát từ E (SE, AE, ED) bị các mặt bên phía trước che khuất và tự động vẽ bằng NÉT ĐỨT đúng như hình vẽ trang 8 PDF!"
+            },
+            {
+                id: "p3_c6",
+                part: 3,
+                qNum: 6,
+                label: "Câu 6 - Phần 3",
+                shortTitle: "Tính m + c của hình chóp lục giác S.ABCDEF",
+                question: "Cho hình chóp lục giác S.ABCDEF có đáy ABCDEF là một lục giác lồi như hình vẽ bên. Gọi m là số mặt bên và c là tổng số cạnh của hình chóp S.ABCDEF. Tính giá trị của biểu thức m + c.",
+                shortAnswer: "18",
+                answer: "18",
+                explanation: "Đáy là lục giác (6 cạnh) nên hình chóp S.ABCDEF có số mặt bên m = 6. Tổng số cạnh gồm 6 cạnh bên và 6 cạnh đáy nên c = 6 + 6 = 12. Vậy m + c = 6 + 12 = 18.",
+                guide3D: "Hình chóp lục giác S.ABCDEF có hai đỉnh F, E ở phía sau nên các cạnh khuất (AF, FE, ED, SF, SE) tự động hiển thị bằng NÉT ĐỨT đúng chuẩn hình vẽ trang 8 PDF!"
+            }
+        ];
+
+        // ============================================================================
+        // 1B. ENRICH ALL 42 MODELS WITH URL SLUGS & ALIASES (FINALL1.html#cau-1, etc.)
+        // ============================================================================
+        MODELS_DATA.forEach((m, idx) => {
+            m.globalIndex = idx + 1;
+            if (m.part === 1) {
+                m.urlHash = `cau-${m.qNum}`;
+                m.aliases = [
+                    `cau-${m.qNum}`,
+                    `cau${m.qNum}`,
+                    `phan-1-cau-${m.qNum}`,
+                    `cau-${m.qNum}-phan-1`,
+                    `p1-c${m.qNum}`,
+                    `p1_c${m.qNum}`,
+                    `${m.qNum}`
+                ];
+            } else if (m.part === 2) {
+                m.urlHash = `phan-2-cau-${m.qNum}`;
+                m.aliases = [
+                    `phan-2-cau-${m.qNum}`,
+                    `cau-${m.qNum}-phan-2`,
+                    `p2-c${m.qNum}`,
+                    `p2_c${m.qNum}`,
+                    `cau-${30 + m.qNum}`,
+                    `cau${30 + m.qNum}`
+                ];
+            } else {
+                m.urlHash = `phan-3-cau-${m.qNum}`;
+                m.aliases = [
+                    `phan-3-cau-${m.qNum}`,
+                    `cau-${m.qNum}-phan-3`,
+                    `p3-c${m.qNum}`,
+                    `p3_c${m.qNum}`,
+                    `cau-${36 + m.qNum}`,
+                    `cau${36 + m.qNum}`
+                ];
+            }
+            m.fullUrlDisplay = `FINALL1.html#${m.urlHash}`;
+        });
+
+        function parseSlugToModelIndex(inputString) {
+            if (!inputString) return -1;
+            let cleaned = decodeURIComponent(String(inputString)).trim().toLowerCase();
+            if (cleaned.includes('#')) {
+                cleaned = cleaned.split('#').pop().trim();
+            } else if (cleaned.includes('?')) {
+                const qPart = cleaned.split('?').pop();
+                const params = new URLSearchParams(qPart);
+                cleaned = (params.get('cau') || params.get('id') || params.get('q') || qPart).trim();
+            }
+            cleaned = cleaned.replace(/^#/, '').trim();
+            if (!cleaned) return -1;
+
+            for (let i = 0; i < MODELS_DATA.length; i++) {
+                if (MODELS_DATA[i].aliases.includes(cleaned)) {
+                    return i;
+                }
+            }
+
+            const pMatch = cleaned.match(/p(?:han)?[-_\s]?(\d+)[-_\s]?c(?:au)?[-_\s]?(\d+)/);
+            if (pMatch) {
+                const p = parseInt(pMatch[1], 10);
+                const q = parseInt(pMatch[2], 10);
+                const found = MODELS_DATA.findIndex(m => m.part === p && m.qNum === q);
+                if (found !== -1) return found;
+            }
+
+            const cMatch = cleaned.match(/c(?:au)?[-_\s]?(\d+)/);
+            if (cMatch) {
+                const num = parseInt(cMatch[1], 10);
+                if (num >= 1 && num <= 30) {
+                    return MODELS_DATA.findIndex(m => m.part === 1 && m.qNum === num);
+                } else if (num >= 31 && num <= 36) {
+                    return MODELS_DATA.findIndex(m => m.part === 2 && m.qNum === (num - 30));
+                } else if (num >= 37 && num <= 42) {
+                    return MODELS_DATA.findIndex(m => m.part === 3 && m.qNum === (num - 36));
+                }
+            }
+
+            return -1;
+        }
+
+        function resolveModelIndexFromUrl() {
+            try {
+                const hashPart = window.location.hash || '';
+                if (hashPart) {
+                    const idx = parseSlugToModelIndex(hashPart);
+                    if (idx !== -1) return idx;
+                }
+                const searchPart = window.location.search || '';
+                if (searchPart) {
+                    const idx = parseSlugToModelIndex(searchPart);
+                    if (idx !== -1) return idx;
+                }
+            } catch (e) {}
+            return -1;
+        }
+
+        function handleUrlInputJump(val) {
+            const idx = parseSlugToModelIndex(val);
+            if (idx !== -1) {
+                switchMainView('studio');
+                selectModel(idx, true);
+            }
+        }
+
+        function copyTextToClipboard(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {}
+            document.body.removeChild(ta);
+        }
+
+        function copyCurrentModelUrl(customIndex) {
+            const idx = typeof customIndex === 'number' ? customIndex : currentModelIndex;
+            const model = MODELS_DATA[idx];
+            if (!model) return;
+
+            let shareUrl = model.fullUrlDisplay;
+            try {
+                const baseUrl = window.location.href.split('#')[0].split('?')[0];
+                if (baseUrl.endsWith('.html')) {
+                    shareUrl = `${baseUrl}#${model.urlHash}`;
+                }
+            } catch (e) {}
+
+            copyTextToClipboard(shareUrl);
+
+            const btnText = document.getElementById('copy-url-btn-text');
+            if (btnText) {
+                btnText.textContent = 'Đã copy!';
+                setTimeout(() => { btnText.textContent = 'Copy URL'; }, 1800);
+            }
+        }
+
+        // ============================================================================
+        // 2. THREE.JS SCENE, CAMERA, RENDERER & RESIZEOBSERVER (ZERO DISTORTION)
+        // ============================================================================
+        let scene, camera, renderer, controls, gridHelper;
+        let modelRootGroup;
+        let currentModelIndex = 0;
+        let currentPartFilter = 'all';
+        let showPlanes = true;
+        let showLabels = true;
+        let showGrid = false;
+        let autoRotate = false;
+
+        let activeLabels = [];
+        let activePlaneMeshes = [];
+        let activePolyFaces = [];
+        let activeOccluderTris = [];
+        let activeDynamicEdges = [];
+        let lastCameraStateHash = '';
+        let highlightedEdgeIndex = -1;
+        let lastContainerW = 0;
+        let lastContainerH = 0;
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            // Clean any existing canvas inside #canvas-container
+            Array.from(container.querySelectorAll('canvas')).forEach(c => c.remove());
+
+            const rect = container.getBoundingClientRect();
+            const width = Math.max(rect.width, 320);
+            const height = Math.max(rect.height, 240);
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+            camera.position.set(0.35, 2.75, 7.35);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setSize(width, height, true);
+            container.appendChild(renderer.domElement);
+
+            lastContainerW = Math.round(width);
+            lastContainerH = Math.round(height);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxDistance = 30;
+            controls.minDistance = 2;
+            controls.target.set(0, 0.25, 0);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.84);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.85);
+            dirLight1.position.set(10, 16, 12);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.42);
+            dirLight2.position.set(-10, -8, -10);
+            scene.add(dirLight2);
+
+            gridHelper = new THREE.GridHelper(12, 12, 0x334155, 0x1e293b);
+            gridHelper.position.y = -1.55;
+            gridHelper.visible = showGrid;
+            scene.add(gridHelper);
+
+            modelRootGroup = new THREE.Group();
+            scene.add(modelRootGroup);
+
+            // ResizeObserver guarantees exact 1:1 pixel aspect ratio even after Tailwind loads
+            if (typeof ResizeObserver !== 'undefined') {
+                const ro = new ResizeObserver(() => {
+                    syncCanvasAspectRatio();
+                });
+                ro.observe(container);
+            }
+            window.addEventListener('resize', syncCanvasAspectRatio);
+
+            window.addEventListener('keydown', (e) => {
+                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+                if (e.key === 'ArrowRight') stepModel(1);
+                if (e.key === 'ArrowLeft') stepModel(-1);
+            });
+
+            window.addEventListener('hashchange', () => {
+                const targetIdx = resolveModelIndexFromUrl();
+                if (targetIdx !== -1 && targetIdx !== currentModelIndex) {
+                    switchMainView('studio');
+                    selectModel(targetIdx, false);
+                }
+            });
+
+            animate();
+        }
+
+        function syncCanvasAspectRatio() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !renderer || !camera) return;
+            const rect = container.getBoundingClientRect();
+            const width = Math.round(rect.width);
+            const height = Math.round(rect.height);
+            if (width <= 0 || height <= 0) return;
+
+            if (width !== lastContainerW || height !== lastContainerH) {
+                lastContainerW = width;
+                lastContainerH = height;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height, true);
+                lastCameraStateHash = '';
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            syncCanvasAspectRatio();
+            if (controls) {
+                controls.autoRotate = autoRotate;
+                controls.autoRotateSpeed = 1.6;
+                controls.update();
+            }
+            updateRealTimeOcclusion();
+            update3DLabelsPosition();
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // ============================================================================
+        // 3. 3D GEOMETRY PRIMITIVES & REAL-TIME HIDDEN-LINE / OCCLUSION ENGINE
+        // ============================================================================
+        function clearCurrentModel() {
+            while (modelRootGroup.children.length > 0) {
+                const obj = modelRootGroup.children[0];
+                modelRootGroup.remove(obj);
+            }
+            const labelsLayer = document.getElementById('labels-layer');
+            if (labelsLayer) labelsLayer.innerHTML = '';
+            activeLabels = [];
+            activePlaneMeshes = [];
+            activePolyFaces = [];
+            activeOccluderTris = [];
+            activeDynamicEdges = [];
+            lastCameraStateHash = '';
+            highlightedEdgeIndex = -1;
+        }
+
+        function add3DLabel(position, text, styleType = 'point') {
+            const labelsLayer = document.getElementById('labels-layer');
+            const div = document.createElement('div');
+            div.className = 'point-label-3d';
+            if (styleType === 'plane') div.classList.add('plane-tag');
+            if (styleType === 'line') div.classList.add('line-tag');
+            if (styleType === 'highlight') div.classList.add('highlight-tag');
+            div.textContent = text;
+            labelsLayer.appendChild(div);
+
+            activeLabels.push({
+                element: div,
+                position: position.clone()
+            });
+        }
+
+        function update3DLabelsPosition() {
+            if (!camera || !renderer) return;
+            const width = lastContainerW;
+            const height = lastContainerH;
+            if (width <= 0 || height <= 0) return;
+
+            for (const item of activeLabels) {
+                if (!showLabels) {
+                    item.element.style.display = 'none';
+                    continue;
+                }
+                const projected = item.position.clone().project(camera);
+                if (projected.z > 1) {
+                    item.element.style.display = 'none';
+                    continue;
+                }
+                const x = (projected.x * 0.5 + 0.5) * width;
+                const y = (-(projected.y * 0.5) + 0.5) * height;
+                item.element.style.display = 'block';
+                item.element.style.left = `${x}px`;
+                item.element.style.top = `${y}px`;
+            }
+        }
+
+        function addPointSphere(pos, labelText = '', color = 0x38bdf8, radius = 0.095, labelOffset = new THREE.Vector3(0, 0.23, 0)) {
+            const geom = new THREE.SphereGeometry(radius, 20, 20);
+            const mat = new THREE.MeshStandardMaterial({
+                color,
+                roughness: 0.25,
+                metalness: 0.15,
+                emissive: color,
+                emissiveIntensity: 0.28
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.copy(pos);
+            modelRootGroup.add(mesh);
+
+            if (labelText) {
+                add3DLabel(pos.clone().add(labelOffset), labelText, 'point');
+            }
+            return mesh;
+        }
+
+        function createCylinderSubMesh(p1, p2, radius, material) {
+            const dir = new THREE.Vector3().subVectors(p2, p1);
+            const len = dir.length();
+            if (len < 0.0001) return null;
+            const geom = new THREE.CylinderGeometry(radius, radius, len, 12);
+            const mesh = new THREE.Mesh(geom, material);
+            const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+            mesh.position.copy(mid);
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+            return mesh;
+        }
+
+        function updateCylinderMeshEndpoints(mesh, pA, pB) {
+            const dir = new THREE.Vector3().subVectors(pB, pA);
+            const len = dir.length();
+            if (len < 0.0005) {
+                mesh.visible = false;
+                return;
+            }
+            mesh.visible = true;
+            mesh.position.addVectors(pA, pB).multiplyScalar(0.5);
+            mesh.scale.set(1, len, 1);
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.divideScalar(len));
+        }
+
+        /**
+         * Registers a 3D polygonal face.
+         * - If `insidePoint` is provided: this face belongs to a closed 3D polyhedron (outward normal is enforced).
+         * - If `insidePoint` is null: this is an open two-sided plane in space (e.g. (P), (Q), (α)).
+         */
+        function registerPolygonFace(vertices, options = {}) {
+            const color = options.color !== undefined ? options.color : 0x0ea5e9;
+            const opacity = options.opacity !== undefined ? options.opacity : 0.22;
+            const insidePoint = options.insidePoint || null;
+            const isPolyFace = !!insidePoint;
+            const isHelperSection = !!options.isHelperSection;
+            const registerAsOccluder = options.occluder !== false;
+
+            const center = new THREE.Vector3();
+            vertices.forEach(v => center.add(v));
+            center.divideScalar(vertices.length);
+
+            const v1 = new THREE.Vector3().subVectors(vertices[1], vertices[0]);
+            const v2 = new THREE.Vector3().subVectors(vertices[2], vertices[0]);
+            const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+
+            if (insidePoint) {
+                const toOutside = new THREE.Vector3().subVectors(center, insidePoint);
+                if (normal.dot(toOutside) < 0) {
+                    normal.negate();
+                }
+            } else {
+                // For open planes, orient canonical normal upward (+Y) or toward +Z for consistency
+                if (normal.y < -0.001 || (Math.abs(normal.y) <= 0.001 && normal.z < 0)) {
+                    normal.negate();
+                }
+            }
+
+            const geom = new THREE.BufferGeometry();
+            const positions = [];
+            const tris = [];
+            for (let i = 1; i < vertices.length - 1; i++) {
+                const a = vertices[0];
+                const b = vertices[i];
+                const c = vertices[i + 1];
+                positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+                tris.push({ a: a.clone(), b: b.clone(), c: c.clone() });
+            }
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geom.computeVertexNormals();
+
+            const mat = new THREE.MeshPhongMaterial({
+                color,
+                transparent: true,
+                opacity,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                polygonOffset: true,
+                polygonOffsetFactor: 1,
+                polygonOffsetUnits: 1,
+                shininess: 35
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.visible = showPlanes;
+            modelRootGroup.add(mesh);
+            activePlaneMeshes.push(mesh);
+
+            const faceObj = {
+                name: options.name || '',
+                vertices: vertices.map(v => v.clone()),
+                center,
+                normal,
+                mesh,
+                baseOpacity: opacity,
+                isFrontFacing: true,
+                dotValue: 1,
+                isPolyFace,
+                isOpenPlane: !isPolyFace && !isHelperSection,
+                isHelperSection
+            };
+            activePolyFaces.push(faceObj);
+
+            if (registerAsOccluder) {
+                tris.forEach(t => {
+                    activeOccluderTris.push({
+                        a: t.a,
+                        b: t.b,
+                        c: t.c,
+                        face: faceObj
+                    });
+                });
+            }
+
+            return faceObj;
+        }
+
+        /**
+         * CAD-Grade 3D Edge Builder supporting:
+         * - Seamless solid spans (no segmentation artifacts on visible/partial segments)
+         * - Uniform physical-length dashes (textbook-standard dash/gap ratio)
+         * - 4 rigorous visibility modes:
+         *   1) adjacentFaces (Polyhedron edge between 2 faces)
+         *   2) hostPolyFace  (Line lying on 1 face of a closed polyhedron)
+         *   3) strictlyInsidePoly (Line inside the interior of a closed polyhedron)
+         *   4) space_line / coplanarFaces (Line in space or on an open plane, tested via Signed Plane-Side + Barycentric Occlusion)
+         */
+        function registerDynamicEdge(p1, p2, options = {}) {
+            const solidColor = options.color !== undefined ? options.color : 0x38bdf8;
+            const dashedColor = options.dashedColor !== undefined ? options.dashedColor : 0xfbbf24;
+            const radius = options.radius || 0.036;
+
+            const totalLen = p1.distanceTo(p2);
+            const sampleCount = Math.max(36, Math.min(84, Math.round(totalLen * 18)));
+
+            const solidMat = new THREE.MeshStandardMaterial({
+                color: solidColor,
+                roughness: 0.3,
+                emissive: solidColor,
+                emissiveIntensity: 0.18
+            });
+            const dashedMat = new THREE.MeshStandardMaterial({
+                color: dashedColor,
+                roughness: 0.3,
+                emissive: dashedColor,
+                emissiveIntensity: 0.35
+            });
+
+            // Pool of 4 reusable unit-height cylinders for contiguous visible spans
+            const unitCylGeom = new THREE.CylinderGeometry(radius, radius, 1, 12);
+            const solidSpanMeshes = [];
+            for (let k = 0; k < 4; k++) {
+                const sm = new THREE.Mesh(unitCylGeom, solidMat);
+                sm.visible = false;
+                modelRootGroup.add(sm);
+                solidSpanMeshes.push(sm);
+            }
+
+            // Uniform physical-size dashes along the edge (textbook standard: ~0.15 dash, ~0.10 gap)
+            const dashMeshes = [];
+            const stride = 0.24;
+            const dashCount = Math.max(5, Math.round(totalLen / stride));
+            for (let i = 0; i < dashCount; i++) {
+                const tCenter = (i + 0.5) / dashCount;
+                const halfSpan = 0.30 / dashCount;
+                const tA = Math.max(0.01, tCenter - halfSpan);
+                const tB = Math.min(0.99, tCenter + halfSpan);
+                const dp1 = new THREE.Vector3().lerpVectors(p1, p2, tA);
+                const dp2 = new THREE.Vector3().lerpVectors(p1, p2, tB);
+                const dMesh = createCylinderSubMesh(dp1, dp2, radius * 0.95, dashedMat);
+                if (dMesh) {
+                    dMesh.visible = false;
+                    modelRootGroup.add(dMesh);
+                    dashMeshes.push({
+                        tCenter,
+                        samplePoint: new THREE.Vector3().lerpVectors(p1, p2, tCenter),
+                        mesh: dMesh
+                    });
+                }
+            }
+
+            // High-resolution visibility sample points for exact partial-occlusion splitting
+            const samplePoints = [];
+            for (let i = 0; i < sampleCount; i++) {
+                const t = (i + 0.5) / sampleCount;
+                samplePoints.push({
+                    t,
+                    pt: new THREE.Vector3().lerpVectors(p1, p2, t)
+                });
+            }
+
+            let hostPolyFace = options.hostPolyFace || null;
+            const coplanarFaces = Array.isArray(options.coplanarFaces) ? [...options.coplanarFaces] : [];
+            if (options.coplanarFace) coplanarFaces.push(options.coplanarFace);
+
+            if (options.onFace) {
+                if (options.onFace.isPolyFace) {
+                    hostPolyFace = options.onFace;
+                } else {
+                    coplanarFaces.push(options.onFace);
+                }
+            }
+
+            const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+            const edgeObj = {
+                name: options.name || '',
+                p1: p1.clone(),
+                p2: p2.clone(),
+                mid: mid.clone(),
+                solidSpanMeshes,
+                dashMeshes,
+                samplePoints,
+                solidMat,
+                dashedMat,
+                baseSolidColor: solidColor,
+                baseDashedColor: dashedColor,
+                adjacentFaces: options.adjacentFaces || null,
+                hostPolyFace,
+                coplanarFaces,
+                strictlyInsidePoly: !!options.strictlyInsidePoly,
+                noOcclusion: !!options.noOcclusion,
+                forceMode: options.forceMode || null,
+                currentState: 'solid',
+                reasonText: 'Nhìn thấy trực tiếp'
+            };
+
+            activeDynamicEdges.push(edgeObj);
+            return edgeObj;
+        }
+
+        /**
+         * Exact Signed Plane-Side + Barycentric Triangle Occlusion Check.
+         * Guarantees that a triangle `tri` on plane `F` can ONLY occlude sample point `samplePt`
+         * if `camPos` and `samplePt` lie on STRICTLY OPPOSITE sides of plane `F`
+         * and the plane-crossing point `I` lies inside triangle `(a, b, c)`.
+         */
+        function isSampleOccludedByTriangle(camPos, samplePt, tri) {
+            const face = tri.face;
+            const normal = face.normal;
+            const center = face.center;
+
+            const dCam =
+                normal.x * (camPos.x - center.x) +
+                normal.y * (camPos.y - center.y) +
+                normal.z * (camPos.z - center.z);
+
+            const dSample =
+                normal.x * (samplePt.x - center.x) +
+                normal.y * (samplePt.y - center.y) +
+                normal.z * (samplePt.z - center.z);
+
+            // If sample lies right on the plane or on the SAME side of the plane as the camera, it CANNOT be occluded by this plane
+            if (Math.abs(dSample) < 0.032 || Math.abs(dCam) < 0.032) return false;
+            if (dCam * dSample >= 0) return false;
+
+            const alpha = dCam / (dCam - dSample);
+            if (alpha <= 0.015 || alpha >= 0.985) return false;
+
+            // Compute exact 3D intersection point I on plane F
+            const ix = camPos.x + alpha * (samplePt.x - camPos.x);
+            const iy = camPos.y + alpha * (samplePt.y - camPos.y);
+            const iz = camPos.z + alpha * (samplePt.z - camPos.z);
+
+            // Barycentric test inside triangle (a, b, c)
+            const ax = tri.a.x, ay = tri.a.y, az = tri.a.z;
+            const v0x = tri.c.x - ax, v0y = tri.c.y - ay, v0z = tri.c.z - az;
+            const v1x = tri.b.x - ax, v1y = tri.b.y - ay, v1z = tri.b.z - az;
+            const v2x = ix - ax,      v2y = iy - ay,      v2z = iz - az;
+
+            const dot00 = v0x * v0x + v0y * v0y + v0z * v0z;
+            const dot01 = v0x * v1x + v0y * v1y + v0z * v1z;
+            const dot02 = v0x * v2x + v0y * v2y + v0z * v2z;
+            const dot11 = v1x * v1x + v1y * v1y + v1z * v1z;
+            const dot12 = v1x * v2x + v1y * v2y + v1z * v2z;
+
+            const denom = dot00 * dot11 - dot01 * dot01;
+            if (Math.abs(denom) < 1e-8) return false;
+            const invDenom = 1.0 / denom;
+
+            const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+            if (u < -0.002 || u > 1.002) return false;
+
+            const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+            if (v < -0.002 || (u + v) > 1.002) return false;
+
+            return true;
+        }
+
+        function pointDistanceToFacePlane(pt, face) {
+            const diff = new THREE.Vector3().subVectors(pt, face.center);
+            return Math.abs(diff.dot(face.normal));
+        }
+
+        function pointLiesOnFacePlane(pt, face, tol = 0.045) {
+            return pointDistanceToFacePlane(pt, face) < tol;
+        }
+
+        function setEdgeVisualState(edge, mode, sampleVisStates = null) {
+            edge.currentState = mode;
+
+            // Hide all solid spans & dashes first
+            for (const sm of edge.solidSpanMeshes) sm.visible = false;
+            for (const dm of edge.dashMeshes) dm.mesh.visible = false;
+
+            if (mode === 'solid') {
+                updateCylinderMeshEndpoints(edge.solidSpanMeshes[0], edge.p1, edge.p2);
+            } else if (mode === 'dashed') {
+                for (const dm of edge.dashMeshes) {
+                    dm.mesh.visible = true;
+                }
+            } else if (mode === 'partial' && sampleVisStates) {
+                // 1. Merge contiguous visible sample intervals into seamless solid cylinders
+                const n = sampleVisStates.length;
+                const spans = [];
+                let inSpan = false;
+                let startIdx = 0;
+
+                for (let i = 0; i < n; i++) {
+                    if (sampleVisStates[i] && !inSpan) {
+                        inSpan = true;
+                        startIdx = i;
+                    } else if (!sampleVisStates[i] && inSpan) {
+                        inSpan = false;
+                        spans.push([startIdx / n, i / n]);
+                    }
+                }
+                if (inSpan) {
+                    spans.push([startIdx / n, 1.0]);
+                }
+
+                for (let k = 0; k < Math.min(spans.length, edge.solidSpanMeshes.length); k++) {
+                    const [t0, t1] = spans[k];
+                    const pA = new THREE.Vector3().lerpVectors(edge.p1, edge.p2, t0);
+                    const pB = new THREE.Vector3().lerpVectors(edge.p1, edge.p2, t1);
+                    updateCylinderMeshEndpoints(edge.solidSpanMeshes[k], pA, pB);
+                }
+
+                // 2. Enable uniform dash meshes whose center falls in an occluded sample region
+                for (const dm of edge.dashMeshes) {
+                    const sIdx = Math.min(n - 1, Math.max(0, Math.floor(dm.tCenter * n)));
+                    dm.mesh.visible = !sampleVisStates[sIdx];
+                }
+            }
+        }
+
+        function updateRealTimeOcclusion(forceUpdate = false) {
+            if (!camera) return;
+            const camPos = camera.position;
+            const hash = `${camPos.x.toFixed(3)},${camPos.y.toFixed(3)},${camPos.z.toFixed(3)}_${showPlanes}_${highlightedEdgeIndex}`;
+            if (!forceUpdate && hash === lastCameraStateHash) return;
+            lastCameraStateHash = hash;
+
+            // Step 1: Evaluate face orientation relative to camera
+            const viewVec = new THREE.Vector3();
+            for (const face of activePolyFaces) {
+                viewVec.subVectors(camPos, face.center);
+                face.dotValue = face.normal.dot(viewVec);
+                // IMPORTANT: Open planes (P), (Q), (α) are two-sided and always visible.
+                // Only closed polyhedron faces have a hidden back-facing state.
+                if (face.isPolyFace) {
+                    face.isFrontFacing = face.dotValue > 0;
+                } else {
+                    face.isFrontFacing = true;
+                }
+
+                if (showPlanes && face.mesh) {
+                    face.mesh.material.opacity = face.isFrontFacing
+                        ? face.baseOpacity
+                        : Math.max(0.08, face.baseOpacity * 0.6);
+                }
+            }
+
+            // Step 2: Evaluate each edge's exact visibility state
+            let solidCount = 0;
+            let dashedCount = 0;
+
+            for (const edge of activeDynamicEdges) {
+                if (!showPlanes) {
+                    edge.reasonText = 'Chế độ X-Ray (Đã tắt mặt chắn)';
+                    setEdgeVisualState(edge, 'solid');
+                    solidCount++;
+                    continue;
+                }
+
+                if (edge.forceMode) {
+                    edge.reasonText = edge.forceMode === 'solid' ? 'Cạnh nhìn thấy trực tiếp' : 'Đường chéo / Đường gióng quy ước';
+                    setEdgeVisualState(edge, edge.forceMode);
+                    if (edge.forceMode === 'solid') solidCount++;
+                    else dashedCount++;
+                    continue;
+                }
+
+                if (edge.noOcclusion) {
+                    edge.reasonText = 'Giao tuyến / Đường nhìn thấy trực tiếp';
+                    setEdgeVisualState(edge, 'solid');
+                    solidCount++;
+                    continue;
+                }
+
+                // Rule A: Line strictly inside the interior of a closed polyhedron (e.g., SG, SO, AE, BF)
+                if (edge.strictlyInsidePoly) {
+                    const frontFaceNames = activePolyFaces.filter(f => f.isPolyFace && f.isFrontFacing && f.name).map(f => f.name);
+                    edge.reasonText = frontFaceNames.length > 0
+                        ? `Nằm trong khối (Che bởi ${frontFaceNames.slice(0, 2).join(', ')})`
+                        : 'Nằm bên trong lòng khối đa diện';
+                    setEdgeVisualState(edge, 'dashed');
+                    dashedCount++;
+                    continue;
+                }
+
+                // Rule B: Polyhedron edge shared by two polyhedron faces F1, F2
+                if (edge.adjacentFaces && edge.adjacentFaces.length > 0) {
+                    const frontAdj = edge.adjacentFaces.filter(f => f && f.isFrontFacing);
+                    if (frontAdj.length === 0) {
+                        const backNames = edge.adjacentFaces.filter(Boolean).map(f => f.name).join(' & ');
+                        edge.reasonText = `Khuất sau khối (2 mặt ${backNames} quay ra sau)`;
+                        setEdgeVisualState(edge, 'dashed');
+                        dashedCount++;
+                    } else {
+                        const visNames = frontAdj.map(f => f.name).join(', ');
+                        edge.reasonText = `Thuộc mặt nhìn thấy ${visNames}`;
+                        setEdgeVisualState(edge, 'solid');
+                        solidCount++;
+                    }
+                    continue;
+                }
+
+                // Rule C: Line lying on a single face of a closed polyhedron (e.g., DE ⊂ (SAB), BN ⊂ (ABC))
+                if (edge.hostPolyFace) {
+                    if (edge.hostPolyFace.isFrontFacing) {
+                        edge.reasonText = `Nằm trên mặt nhìn thấy ${edge.hostPolyFace.name || ''}`;
+                        setEdgeVisualState(edge, 'solid');
+                        solidCount++;
+                    } else {
+                        edge.reasonText = `Nằm trên mặt khuất ${edge.hostPolyFace.name || ''}`;
+                        setEdgeVisualState(edge, 'dashed');
+                        dashedCount++;
+                    }
+                    continue;
+                }
+
+                // Rule D: Space line, piercing line, extended line, or open-plane edge -> Exact Signed Plane-Side Test
+                let visSamples = 0;
+                let occSamples = 0;
+                let blockingFaceName = '';
+                const sampleStates = [];
+
+                for (let i = 0; i < edge.samplePoints.length; i++) {
+                    const sp = edge.samplePoints[i].pt;
+                    let isSampleOccluded = false;
+
+                    for (let j = 0; j < activeOccluderTris.length; j++) {
+                        const tri = activeOccluderTris[j];
+                        if (edge.coplanarFaces && edge.coplanarFaces.includes(tri.face)) continue;
+                        if (pointLiesOnFacePlane(edge.p1, tri.face, 0.045) && pointLiesOnFacePlane(edge.p2, tri.face, 0.045)) {
+                            continue;
+                        }
+
+                        if (isSampleOccludedByTriangle(camPos, sp, tri)) {
+                            isSampleOccluded = true;
+                            if (!blockingFaceName && tri.face && tri.face.name) {
+                                blockingFaceName = tri.face.name;
+                            }
+                            break;
+                        }
+                    }
+
+                    sampleStates.push(!isSampleOccluded);
+                    if (isSampleOccluded) occSamples++;
+                    else visSamples++;
+                }
+
+                if (occSamples === 0) {
+                    edge.reasonText = (edge.coplanarFaces && edge.coplanarFaces.length > 0)
+                        ? `Nằm trên mặt phẳng ${edge.coplanarFaces[0].name} (Nhìn thấy)`
+                        : 'Không bị mặt phẳng nào che khuất';
+                    setEdgeVisualState(edge, 'solid');
+                    solidCount++;
+                } else if (visSamples === 0) {
+                    edge.reasonText = blockingFaceName
+                        ? `Bị mặt ${blockingFaceName} che khuất hoàn toàn`
+                        : 'Bị mặt phẳng phía trước che khuất';
+                    setEdgeVisualState(edge, 'dashed');
+                    dashedCount++;
+                } else {
+                    edge.reasonText = blockingFaceName
+                        ? `Phần khuất sau ${blockingFaceName} chuyển sang nét đứt`
+                        : 'Một phần nhìn thấy (liền), một phần bị che (đứt)';
+                    setEdgeVisualState(edge, 'partial', sampleStates);
+                    dashedCount++;
+                }
+            }
+
+            const solidEl = document.getElementById('hud-solid-count');
+            const dashedEl = document.getElementById('hud-dashed-count');
+            const summaryEl = document.getElementById('panel-occlusion-summary');
+            if (solidEl) solidEl.textContent = solidCount;
+            if (dashedEl) dashedEl.textContent = dashedCount;
+            if (summaryEl) summaryEl.textContent = `${solidCount} Liền • ${dashedCount} Đứt`;
+
+            renderLiveOcclusionMonitor();
+        }
+
+        function renderLiveOcclusionMonitor() {
+            const listEl = document.getElementById('live-occlusion-list');
+            const facesEl = document.getElementById('live-faces-list');
+            if (!listEl) return;
+
+            const namedEdges = activeDynamicEdges
+                .map((e, idx) => ({ edge: e, idx }))
+                .filter(item => item.edge.name && item.edge.name.trim() !== '');
+
+            if (namedEdges.length === 0) {
+                listEl.innerHTML = `<div class="text-[11px] text-slate-400 py-1">Xoay góc nhìn 3D để quan sát mặt phẳng và điểm trong không gian.</div>`;
+            } else {
+                listEl.innerHTML = namedEdges.map(({ edge: e, idx }) => {
+                    const isHighlighted = idx === highlightedEdgeIndex;
+                    const highlightBorder = isHighlighted ? 'ring-2 ring-sky-400 bg-sky-500/25' : '';
+                    let badgeHtml = '';
+                    let rowBg = '';
+
+                    if (e.currentState === 'solid') {
+                        rowBg = 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20';
+                        badgeHtml = `<span class="text-[10px] font-extrabold text-emerald-400 shrink-0 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30">━━ Nét liền</span>`;
+                    } else if (e.currentState === 'dashed') {
+                        rowBg = 'bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25';
+                        badgeHtml = `<span class="text-[10px] font-extrabold text-amber-300 shrink-0 px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/40">╌╌ Nét đứt</span>`;
+                    } else {
+                        rowBg = 'bg-sky-500/15 border-sky-500/40 hover:bg-sky-500/25';
+                        badgeHtml = `<span class="text-[10px] font-extrabold text-sky-300 shrink-0 px-1.5 py-0.5 rounded bg-sky-950/80 border border-sky-500/40">━╌ Liền + Đứt</span>`;
+                    }
+
+                    return `
+                        <div onclick="pulseHighlightEdge(${idx})" class="cursor-pointer px-2.5 py-1.5 rounded-xl border transition ${rowBg} ${highlightBorder}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-mono text-xs font-extrabold text-white">${e.name}</span>
+                                ${badgeHtml}
+                            </div>
+                            <div class="text-[10px] text-slate-300 mt-0.5 truncate">${e.reasonText || ''}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (facesEl) {
+                const namedFaces = activePolyFaces.filter(f => f.name && f.name.trim() !== '' && !f.isHelperSection);
+                if (namedFaces.length === 0) {
+                    facesEl.innerHTML = `<span class="text-[10px] text-slate-500">Không gian đường thẳng mở</span>`;
+                } else {
+                    facesEl.innerHTML = namedFaces.map(f => {
+                        if (f.isOpenPlane) {
+                            return `
+                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30" title="Mặt phẳng mở 2 phía trong không gian">
+                                    ${f.name}: Mặt phẳng mở
+                                </span>
+                            `;
+                        }
+                        if (f.isFrontFacing) {
+                            return `
+                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" title="Vector pháp tuyến hướng về phía Camera (Mặt nhìn thấy)">
+                                    ${f.name}: Nhìn thấy
+                                </span>
+                            `;
+                        } else {
+                            return `
+                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30" title="Vector pháp tuyến quay ra xa Camera (Mặt khuất phía sau)">
+                                    ${f.name}: Mặt khuất
+                                </span>
+                            `;
+                        }
+                    }).join('');
+                }
+            }
+        }
+
+        function pulseHighlightEdge(edgeIdx) {
+            const target = activeDynamicEdges[edgeIdx];
+            if (!target) return;
+            highlightedEdgeIndex = edgeIdx;
+
+            activeDynamicEdges.forEach((e, i) => {
+                if (i === edgeIdx) {
+                    e.solidMat.color.setHex(0x00ffff);
+                    e.solidMat.emissive.setHex(0x00ffff);
+                    e.solidMat.emissiveIntensity = 0.85;
+                    e.dashedMat.color.setHex(0x00ffff);
+                    e.dashedMat.emissive.setHex(0x00ffff);
+                    e.dashedMat.emissiveIntensity = 0.85;
+                } else {
+                    e.solidMat.color.setHex(e.baseSolidColor);
+                    e.solidMat.emissive.setHex(e.baseSolidColor);
+                    e.solidMat.emissiveIntensity = 0.16;
+                    e.dashedMat.color.setHex(e.baseDashedColor);
+                    e.dashedMat.emissive.setHex(e.baseDashedColor);
+                    e.dashedMat.emissiveIntensity = 0.28;
+                }
+            });
+
+            renderLiveOcclusionMonitor();
+        }
+
+        function addSegment(p1, p2, color = 0x38bdf8, radius = 0.036, dashed = false, edgeName = '') {
+            return registerDynamicEdge(p1, p2, {
+                name: edgeName,
+                color,
+                dashedColor: color,
+                radius,
+                forceMode: dashed ? 'dashed' : null
+            });
+        }
+
+        function addPolygonPlane(vertices, color = 0x0ea5e9, opacity = 0.22, showBorder = true, borderColor = 0x38bdf8, planeName = '(P)') {
+            const face = registerPolygonFace(vertices, { name: planeName, color, opacity, occluder: true });
+            if (showBorder) {
+                for (let i = 0; i < vertices.length; i++) {
+                    const next = (i + 1) % vertices.length;
+                    registerDynamicEdge(vertices[i], vertices[next], {
+                        name: `Cạnh biên ${planeName} #${i + 1}`,
+                        color: borderColor,
+                        dashedColor: 0xfbbf24,
+                        radius: 0.028,
+                        coplanarFace: face
+                    });
+                }
+            }
+            return face;
+        }
+
+        function createParallelogramVertices(center = new THREE.Vector3(0, 0, 0), width = 4.6, depth = 3.0, skew = 0.9, y = 0) {
+            const hw = width / 2;
+            const hd = depth / 2;
+            return [
+                new THREE.Vector3(center.x - hw + skew * 0.5, y, center.z - hd),
+                new THREE.Vector3(center.x + hw + skew * 0.5, y, center.z - hd),
+                new THREE.Vector3(center.x + hw - skew * 0.5, y, center.z + hd),
+                new THREE.Vector3(center.x - hw - skew * 0.5, y, center.z + hd)
+            ];
+        }
+
+        function addParallelogramPlane(label = "(P)", y = 0, color = 0x0ea5e9, opacity = 0.22, scale = 1.0) {
+            const verts = createParallelogramVertices(new THREE.Vector3(0, y, 0), 4.8 * scale, 3.1 * scale, 1.0 * scale, y);
+            const face = addPolygonPlane(verts, color, opacity, true, color, label);
+            if (label) {
+                const corner = verts[3].clone().lerp(verts[0], 0.18).lerp(verts[2], 0.12);
+                add3DLabel(corner.add(new THREE.Vector3(0, 0.12, 0)), label, 'plane');
+            }
+            return { verts, face };
+        }
+
+        function buildDynamicTetrahedron(Apex, V1, V2, V3, names = { apex: 'S', v1: 'A', v2: 'B', v3: 'C' }, colors = {}) {
+            const centroid = new THREE.Vector3().add(Apex).add(V1).add(V2).add(V3).multiplyScalar(0.25);
+
+            const f12 = registerPolygonFace([Apex, V1, V2], {
+                name: `(${names.apex}${names.v1}${names.v2})`,
+                color: colors.f12 || 0x0ea5e9,
+                opacity: colors.opacity || 0.20,
+                insidePoint: centroid
+            });
+            const f23 = registerPolygonFace([Apex, V2, V3], {
+                name: `(${names.apex}${names.v2}${names.v3})`,
+                color: colors.f23 || 0x6366f1,
+                opacity: colors.opacity || 0.20,
+                insidePoint: centroid
+            });
+            const f13 = registerPolygonFace([Apex, V1, V3], {
+                name: `(${names.apex}${names.v1}${names.v3})`,
+                color: colors.f13 || 0x3b82f6,
+                opacity: colors.opacity || 0.18,
+                insidePoint: centroid
+            });
+            const fBase = registerPolygonFace([V1, V2, V3], {
+                name: `(${names.v1}${names.v2}${names.v3})`,
+                color: colors.fBase || 0x10b981,
+                opacity: colors.baseOpacity || 0.22,
+                insidePoint: centroid
+            });
+
+            const eA1 = registerDynamicEdge(Apex, V1, {
+                name: `${names.apex}${names.v1}`,
+                color: colors.eA1 || 0xe2e8f0,
+                dashedColor: colors.dA1 || 0xf59e0b,
+                radius: colors.rA1 || 0.04,
+                adjacentFaces: [f12, f13]
+            });
+            const eA2 = registerDynamicEdge(Apex, V2, {
+                name: `${names.apex}${names.v2}`,
+                color: colors.eA2 || 0xe2e8f0,
+                dashedColor: colors.dA2 || 0xf59e0b,
+                radius: colors.rA2 || 0.04,
+                adjacentFaces: [f12, f23]
+            });
+            const eA3 = registerDynamicEdge(Apex, V3, {
+                name: `${names.apex}${names.v3}`,
+                color: colors.eA3 || 0xe2e8f0,
+                dashedColor: colors.dA3 || 0xf59e0b,
+                radius: colors.rA3 || 0.04,
+                adjacentFaces: [f23, f13]
+            });
+            const e12 = registerDynamicEdge(V1, V2, {
+                name: `${names.v1}${names.v2}`,
+                color: colors.e12 || 0x38bdf8,
+                dashedColor: colors.d12 || 0xf59e0b,
+                radius: colors.r12 || 0.04,
+                adjacentFaces: [f12, fBase]
+            });
+            const e23 = registerDynamicEdge(V2, V3, {
+                name: `${names.v2}${names.v3}`,
+                color: colors.e23 || 0x38bdf8,
+                dashedColor: colors.d23 || 0xf59e0b,
+                radius: colors.r23 || 0.04,
+                adjacentFaces: [f23, fBase]
+            });
+            const e13 = registerDynamicEdge(V1, V3, {
+                name: `${names.v1}${names.v3}`,
+                color: colors.e13 || 0x38bdf8,
+                dashedColor: colors.d13 || 0xf59e0b,
+                radius: colors.r13 || 0.042,
+                adjacentFaces: [f13, fBase]
+            });
+
+            return { centroid, faces: { f12, f23, f13, fBase }, edges: { eA1, eA2, eA3, e12, e23, e13 } };
+        }
+
+        function buildDynamicQuadPyramid(S, A, B, C, D, colors = {}) {
+            const centroid = new THREE.Vector3().add(S).add(A).add(B).add(C).add(D).multiplyScalar(0.2);
+
+            const fSAB = registerPolygonFace([S, A, B], { name: '(SAB)', color: colors.fSAB || 0x0ea5e9, opacity: 0.20, insidePoint: centroid });
+            const fSBC = registerPolygonFace([S, B, C], { name: '(SBC)', color: colors.fSBC || 0x6366f1, opacity: 0.22, insidePoint: centroid });
+            const fSCD = registerPolygonFace([S, C, D], { name: '(SCD)', color: colors.fSCD || 0x10b981, opacity: 0.20, insidePoint: centroid });
+            const fSDA = registerPolygonFace([S, D, A], { name: '(SDA)', color: colors.fSDA || 0x3b82f6, opacity: 0.17, insidePoint: centroid });
+            const fBase = registerPolygonFace([A, B, C, D], { name: '(ABCD)', color: colors.fBase || 0x1e293b, opacity: 0.28, insidePoint: centroid });
+
+            const eSA = registerDynamicEdge(S, A, { name: 'SA', color: colors.sideColor || 0x38bdf8, radius: 0.04, adjacentFaces: [fSAB, fSDA] });
+            const eSB = registerDynamicEdge(S, B, { name: 'SB', color: colors.sideColor || 0x38bdf8, radius: 0.04, adjacentFaces: [fSAB, fSBC] });
+            const eSC = registerDynamicEdge(S, C, { name: 'SC', color: colors.sideColor || 0x38bdf8, radius: 0.04, adjacentFaces: [fSBC, fSCD] });
+            const eSD = registerDynamicEdge(S, D, { name: 'SD', color: colors.sideColor || 0x38bdf8, radius: 0.04, adjacentFaces: [fSCD, fSDA] });
+
+            const eAB = registerDynamicEdge(A, B, { name: 'AB', color: colors.baseColor || 0x10b981, radius: 0.04, adjacentFaces: [fSAB, fBase] });
+            const eBC = registerDynamicEdge(B, C, { name: 'BC', color: colors.baseColor || 0x10b981, radius: 0.04, adjacentFaces: [fSBC, fBase] });
+            const eCD = registerDynamicEdge(C, D, { name: 'CD', color: colors.baseColor || 0x10b981, radius: 0.04, adjacentFaces: [fSCD, fBase] });
+            const eAD = registerDynamicEdge(A, D, { name: 'AD', color: colors.baseColor || 0x10b981, radius: 0.04, adjacentFaces: [fSDA, fBase] });
+
+            return { centroid, faces: { fSAB, fSBC, fSCD, fSDA, fBase }, edges: { eSA, eSB, eSC, eSD, eAB, eBC, eCD, eAD } };
+        }
+
+        // ============================================================================
+        // 4. DEDICATED 3D SCENE BUILDER FOR ALL 42 QUESTIONS
+        // ============================================================================
+        function buildModelScene(model) {
+            clearCurrentModel();
+
+            switch (model.id) {
+                case "p1_c1": {
+                    addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.28, 1.08);
+                    break;
+                }
+
+                case "p1_c2": {
+                    const O = new THREE.Vector3(-2.3, 0, 1.3);
+                    const P1 = new THREE.Vector3(2.5, 0, 1.3);
+                    const P2 = new THREE.Vector3(1.6, 0, -1.8);
+                    const P3 = new THREE.Vector3(-0.9, 0, -1.5);
+                    const face = registerPolygonFace([O, P1, P2, P3], { name: '(α)', color: 0x6366f1, opacity: 0.26, occluder: true });
+                    registerDynamicEdge(O, P1, { name: 'Cạnh góc 1', color: 0x818cf8, radius: 0.04, onFace: face });
+                    registerDynamicEdge(O, P3, { name: 'Cạnh góc 2', color: 0x818cf8, radius: 0.04, onFace: face });
+
+                    const curvePts = [];
+                    for (let i = 0; i <= 20; i++) {
+                        const t = i / 20;
+                        const angle = -0.98 * t;
+                        curvePts.push(new THREE.Vector3(O.x + 1.15 * Math.cos(angle), 0.01, O.z + 1.15 * Math.sin(angle)));
+                    }
+                    for (let i = 0; i < curvePts.length - 1; i++) {
+                        addSegment(curvePts[i], curvePts[i + 1], 0x38bdf8, 0.025, false);
+                    }
+                    add3DLabel(new THREE.Vector3(-1.1, 0.18, 0.65), "(α)", "plane");
+                    break;
+                }
+
+                case "p1_c3": {
+                    addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.28, 1.0);
+                    const A = new THREE.Vector3(-0.9, 0, 0.35);
+                    const B = new THREE.Vector3(1.1, 1.75, -0.35);
+                    const B_proj = new THREE.Vector3(1.1, -1.1, -0.35);
+                    const B_foot = new THREE.Vector3(1.1, 0, -0.35);
+                    addPointSphere(A, "A", 0x10b981, 0.11);
+                    addPointSphere(B, "B", 0xf43f5e, 0.11);
+                    addPointSphere(B_foot, "B'", 0x94a3b8, 0.06, new THREE.Vector3(0.22, 0.12, 0));
+                    registerDynamicEdge(B, B_proj, { name: "BB' (Xuyên qua (P))", color: 0xf43f5e, dashedColor: 0xf59e0b, radius: 0.028 });
+                    break;
+                }
+
+                case "p1_c4": {
+                    addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.26, 1.0);
+                    const A = new THREE.Vector3(0.2, 0, 0.1);
+                    addPointSphere(A, "A", 0xf59e0b, 0.12);
+                    const ringGeom = new THREE.RingGeometry(0.28, 0.34, 32);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+                    const ring = new THREE.Mesh(ringGeom, ringMat);
+                    ring.rotation.x = Math.PI / 2;
+                    ring.position.set(0.2, 0.01, 0.1);
+                    modelRootGroup.add(ring);
+                    break;
+                }
+
+                case "p1_c5":
+                case "p1_c7": {
+                    const S = new THREE.Vector3(0, 2.35, 0.05);
+                    const A = new THREE.Vector3(-2.1, -0.85, -0.85);
+                    const C = new THREE.Vector3(2.15, -0.85, -0.55);
+                    const B = new THREE.Vector3(0.25, -0.85, 1.65);
+
+                    buildDynamicTetrahedron(S, A, B, C, { apex: 'S', v1: 'A', v2: 'B', v3: 'C' }, {
+                        e13: 0xf59e0b,
+                        d13: 0xf59e0b
+                    });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.095, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    break;
+                }
+
+                case "p1_c6": {
+                    // True 1:1:1 3D Cube (Zero geometric skewing, viewed from oblique camera)
+                    const s = 1.35;
+                    const A  = new THREE.Vector3(-s, -s, -s);
+                    const B  = new THREE.Vector3( s, -s, -s);
+                    const C  = new THREE.Vector3( s, -s,  s);
+                    const D  = new THREE.Vector3(-s, -s,  s);
+
+                    const Ap = new THREE.Vector3(-s,  s, -s);
+                    const Bp = new THREE.Vector3( s,  s, -s);
+                    const Cp = new THREE.Vector3( s,  s,  s);
+                    const Dp = new THREE.Vector3(-s,  s,  s);
+
+                    const center = new THREE.Vector3(0, 0, 0);
+
+                    const fTop    = registerPolygonFace([Ap, Bp, Cp, Dp], { name: "(A'B'C'D')", color: 0x0ea5e9, opacity: 0.19, insidePoint: center });
+                    const fBottom = registerPolygonFace([A, B, C, D],     { name: "(ABCD)",     color: 0x0ea5e9, opacity: 0.19, insidePoint: center });
+                    const fFront  = registerPolygonFace([D, C, Cp, Dp],   { name: "(CDD'C')",   color: 0x6366f1, opacity: 0.19, insidePoint: center });
+                    const fBack   = registerPolygonFace([A, B, Bp, Ap],   { name: "(ABB'A')",   color: 0x6366f1, opacity: 0.19, insidePoint: center });
+                    const fRight  = registerPolygonFace([B, C, Cp, Bp],   { name: "(BCC'B')",   color: 0x10b981, opacity: 0.19, insidePoint: center });
+                    const fLeft   = registerPolygonFace([A, D, Dp, Ap],   { name: "(ADD'A')",   color: 0x10b981, opacity: 0.19, insidePoint: center });
+
+                    registerDynamicEdge(A, B,   { name: "AB",   color: 0x38bdf8, dashedColor: 0x38bdf8, radius: 0.04, adjacentFaces: [fBottom, fBack] });
+                    registerDynamicEdge(D, C,   { name: "DC",   color: 0x38bdf8, dashedColor: 0x38bdf8, radius: 0.04, adjacentFaces: [fBottom, fFront] });
+                    registerDynamicEdge(Ap, Bp, { name: "A'B'", color: 0x38bdf8, dashedColor: 0x38bdf8, radius: 0.04, adjacentFaces: [fTop, fBack] });
+                    registerDynamicEdge(Dp, Cp, { name: "D'C'", color: 0x38bdf8, dashedColor: 0x38bdf8, radius: 0.04, adjacentFaces: [fTop, fFront] });
+
+                    registerDynamicEdge(A, D,   { name: "AD",   color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.04, adjacentFaces: [fBottom, fLeft] });
+                    registerDynamicEdge(B, C,   { name: "BC",   color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.04, adjacentFaces: [fBottom, fRight] });
+                    registerDynamicEdge(Ap, Dp, { name: "A'D'", color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.04, adjacentFaces: [fTop, fLeft] });
+                    registerDynamicEdge(Bp, Cp, { name: "B'C'", color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.04, adjacentFaces: [fTop, fRight] });
+
+                    registerDynamicEdge(A, Ap,  { name: "AA'",  color: 0xf97316, dashedColor: 0xf97316, radius: 0.04, adjacentFaces: [fBack, fLeft] });
+                    registerDynamicEdge(B, Bp,  { name: "BB'",  color: 0xf97316, dashedColor: 0xf97316, radius: 0.04, adjacentFaces: [fBack, fRight] });
+                    registerDynamicEdge(C, Cp,  { name: "CC'",  color: 0xf97316, dashedColor: 0xf97316, radius: 0.04, adjacentFaces: [fFront, fRight] });
+                    registerDynamicEdge(D, Dp,  { name: "DD'",  color: 0xf97316, dashedColor: 0xf97316, radius: 0.04, adjacentFaces: [fFront, fLeft] });
+
+                    addPointSphere(A, "A", 0x94a3b8, 0.075, new THREE.Vector3(-0.22, -0.15, -0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.075, new THREE.Vector3(0.25, -0.15, 0));
+                    addPointSphere(C, "C", 0x38bdf8, 0.075, new THREE.Vector3(0.22, -0.2, 0.15));
+                    addPointSphere(D, "D", 0x38bdf8, 0.075, new THREE.Vector3(-0.25, -0.2, 0.15));
+                    addPointSphere(Ap, "A'", 0x38bdf8, 0.075, new THREE.Vector3(0, 0.25, 0));
+                    addPointSphere(Bp, "B'", 0x38bdf8, 0.075, new THREE.Vector3(0.25, 0.2, 0));
+                    addPointSphere(Cp, "C'", 0x38bdf8, 0.075, new THREE.Vector3(0.22, 0.22, 0));
+                    addPointSphere(Dp, "D'", 0x38bdf8, 0.075, new THREE.Vector3(-0.25, 0.22, 0));
+                    break;
+                }
+
+                case "p1_c8": {
+                    const A = new THREE.Vector3(-1.6, -0.2, 0.2);
+                    const B = new THREE.Vector3(1.6, 0.5, -0.2);
+                    const dir = new THREE.Vector3().subVectors(B, A).normalize();
+                    const P1 = A.clone().addScaledVector(dir, -1.6);
+                    const P2 = B.clone().addScaledVector(dir, 1.6);
+
+                    registerDynamicEdge(P1, P2, { name: "Đường thẳng AB", color: 0x38bdf8, radius: 0.042 });
+                    addPointSphere(A, "A", 0xf59e0b, 0.115);
+                    addPointSphere(B, "B", 0x10b981, 0.115);
+                    break;
+                }
+
+                case "p1_c9": {
+                    const A = new THREE.Vector3(-1.7, -0.6, 0.8);
+                    const B = new THREE.Vector3(1.8, -0.6, 0.5);
+                    const C = new THREE.Vector3(0.1, 1.2, -0.9);
+
+                    const pairs = [
+                        { p1: A, p2: B, color: 0x38bdf8, name: 'Đường thẳng AB' },
+                        { p1: B, p2: C, color: 0x22c55e, name: 'Đường thẳng BC' },
+                        { p1: C, p2: A, color: 0xf59e0b, name: 'Đường thẳng CA' }
+                    ];
+                    pairs.forEach(pair => {
+                        const d = new THREE.Vector3().subVectors(pair.p2, pair.p1).normalize();
+                        registerDynamicEdge(
+                            pair.p1.clone().addScaledVector(d, -1.1),
+                            pair.p2.clone().addScaledVector(d, 1.1),
+                            { name: pair.name, color: pair.color, radius: 0.038 }
+                        );
+                    });
+
+                    addPointSphere(A, "A", 0xf8fafc, 0.11);
+                    addPointSphere(B, "B", 0xf8fafc, 0.11);
+                    addPointSphere(C, "C", 0xf8fafc, 0.11);
+                    break;
+                }
+
+                case "p1_c10": {
+                    const { face } = addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.25, 1.05);
+                    const A = new THREE.Vector3(-1.4, 0, 0.7);
+                    const B = new THREE.Vector3(1.4, 0, 0.6);
+                    const C = new THREE.Vector3(0.1, 0, -0.95);
+
+                    registerPolygonFace([A, B, C], { name: 'Tam giác ABC', color: 0x38bdf8, opacity: 0.35, occluder: false });
+                    registerDynamicEdge(A, B, { name: 'AB', color: 0x38bdf8, radius: 0.036, onFace: face });
+                    registerDynamicEdge(B, C, { name: 'BC', color: 0x38bdf8, radius: 0.036, onFace: face });
+                    registerDynamicEdge(C, A, { name: 'CA', color: 0x38bdf8, radius: 0.036, onFace: face });
+
+                    addPointSphere(A, "A", 0xf59e0b, 0.105);
+                    addPointSphere(B, "B", 0x10b981, 0.105);
+                    addPointSphere(C, "C", 0xec4899, 0.105);
+                    break;
+                }
+
+                case "p1_c11": {
+                    const L1 = new THREE.Vector3(-3.0, 0, 0);
+                    const L2 = new THREE.Vector3(3.0, 0, 0);
+                    registerDynamicEdge(L1, L2, { name: 'Trục thẳng hàng d', color: 0xfacc15, radius: 0.05, noOcclusion: true });
+                    add3DLabel(new THREE.Vector3(2.85, 0.28, 0), "d", "line");
+
+                    const A = new THREE.Vector3(-1.5, 0, 0);
+                    const B = new THREE.Vector3(0.0, 0, 0);
+                    const C = new THREE.Vector3(1.5, 0, 0);
+                    addPointSphere(A, "A", 0xf43f5e, 0.11);
+                    addPointSphere(B, "B", 0x10b981, 0.11);
+                    addPointSphere(C, "C", 0x38bdf8, 0.11);
+
+                    const angles = [0, Math.PI / 3, (2 * Math.PI) / 3];
+                    const colors = [0x0ea5e9, 0xa855f7, 0x10b981];
+                    const pNames = ["(P₁)", "(P₂)", "(P₃)"];
+                    angles.forEach((ang, idx) => {
+                        const dy = 1.65 * Math.sin(ang);
+                        const dz = 1.65 * Math.cos(ang);
+                        const v1 = new THREE.Vector3(-2.5, -dy, -dz);
+                        const v2 = new THREE.Vector3(2.5, -dy, -dz);
+                        const v3 = new THREE.Vector3(2.5, dy, dz);
+                        const v4 = new THREE.Vector3(-2.5, dy, dz);
+                        addPolygonPlane([v1, v2, v3, v4], colors[idx], 0.18, true, colors[idx], pNames[idx]);
+                    });
+                    break;
+                }
+
+                case "p1_c12":
+                case "p1_c13":
+                case "p3_c1": {
+                    const D = new THREE.Vector3(0.0, 2.25, 0.05);
+                    const A = new THREE.Vector3(-2.1, -0.85, -0.85);
+                    const C = new THREE.Vector3(2.15, -0.85, -0.55);
+                    const B = new THREE.Vector3(0.25, -0.85, 1.65);
+
+                    buildDynamicTetrahedron(D, A, B, C, { apex: 'D', v1: 'A', v2: 'B', v3: 'C' }, {
+                        f12: 0x0ea5e9,
+                        f23: 0xa855f7,
+                        f13: 0xf43f5e,
+                        fBase: 0x10b981,
+                        opacity: 0.22
+                    });
+
+                    addPointSphere(D, "D", 0xf43f5e, 0.11, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.1, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.1, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.1, new THREE.Vector3(0.26, -0.05, 0));
+                    break;
+                }
+
+                case "p1_c14": {
+                    const { face } = addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.22, 1.08);
+                    const A = new THREE.Vector3(-1.5, 0, -0.9);
+                    const B = new THREE.Vector3(-0.8, 0, 1.05);
+                    const C = new THREE.Vector3(1.5, 0, 0.85);
+                    const D = new THREE.Vector3(1.1, 0, -0.95);
+
+                    registerPolygonFace([A, B, C, D], { name: 'Tứ giác ABCD', color: 0x10b981, opacity: 0.32, occluder: false });
+                    registerDynamicEdge(A, B, { name: 'AB', color: 0x34d399, radius: 0.04, onFace: face });
+                    registerDynamicEdge(B, C, { name: 'BC', color: 0x34d399, radius: 0.04, onFace: face });
+                    registerDynamicEdge(C, D, { name: 'CD', color: 0x34d399, radius: 0.04, onFace: face });
+                    registerDynamicEdge(D, A, { name: 'DA', color: 0x34d399, radius: 0.04, onFace: face });
+                    registerDynamicEdge(A, C, { name: 'Đường chéo AC', color: 0xfbbf24, radius: 0.025, onFace: face, forceMode: 'dashed' });
+                    registerDynamicEdge(B, D, { name: 'Đường chéo BD', color: 0xfbbf24, radius: 0.025, onFace: face, forceMode: 'dashed' });
+
+                    addPointSphere(A, "A", 0xf8fafc, 0.095);
+                    addPointSphere(B, "B", 0xf8fafc, 0.095);
+                    addPointSphere(C, "C", 0xf8fafc, 0.095);
+                    addPointSphere(D, "D", 0xf8fafc, 0.095);
+                    break;
+                }
+
+                case "p1_c15": {
+                    const { face } = addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.25, 1.05);
+                    const L1 = new THREE.Vector3(-2.3, 0, 0.75);
+                    const L2 = new THREE.Vector3(2.3, 0, -0.75);
+                    const A = L1.clone().lerp(L2, 0.28);
+                    const B = L1.clone().lerp(L2, 0.72);
+
+                    registerDynamicEdge(L1, L2, { name: 'd ⊂ (P)', color: 0xfacc15, radius: 0.044, onFace: face });
+                    add3DLabel(L2.clone().add(new THREE.Vector3(0.2, 0.18, 0)), "d", "line");
+                    addPointSphere(A, "A", 0x10b981, 0.105);
+                    addPointSphere(B, "B", 0xf43f5e, 0.105);
+                    break;
+                }
+
+                case "p1_c16": {
+                    const { face } = addParallelogramPlane("(ABC)", 0, 0x0ea5e9, 0.20, 1.15);
+                    const A = new THREE.Vector3(-0.6, 0, -1.05);
+                    const B = new THREE.Vector3(-1.85, 0, 0.8);
+                    const C = new THREE.Vector3(0.45, 0, 0.8);
+                    const M = new THREE.Vector3(1.9, 0, 0.8);
+
+                    registerPolygonFace([A, B, C], { name: 'ΔABC', color: 0x38bdf8, opacity: 0.34, occluder: false });
+                    registerDynamicEdge(A, B, { name: 'AB', color: 0xe2e8f0, radius: 0.038, onFace: face });
+                    registerDynamicEdge(A, C, { name: 'AC', color: 0xe2e8f0, radius: 0.038, onFace: face });
+                    registerDynamicEdge(new THREE.Vector3(-2.5, 0, 0.8), new THREE.Vector3(2.6, 0, 0.8), { name: 'Đường thẳng BC', color: 0x38bdf8, radius: 0.036, onFace: face });
+                    registerDynamicEdge(A, M, { name: 'Đường thẳng AM', color: 0xf43f5e, radius: 0.042, onFace: face });
+
+                    addPointSphere(A, "A", 0x38bdf8, 0.1);
+                    addPointSphere(B, "B", 0x38bdf8, 0.1);
+                    addPointSphere(C, "C", 0x38bdf8, 0.1);
+                    addPointSphere(M, "M", 0xf43f5e, 0.11);
+                    break;
+                }
+
+                case "p1_c17": {
+                    // Two planes (P) and (Q) intersecting along line d = (P) ∩ (Q) (Textbook standard wedge/intersection)
+                    const d1 = new THREE.Vector3(-2.5, -0.2, -0.2);
+                    const d2 = new THREE.Vector3(2.5, 0.2, 0.2);
+
+                    // Plane (P): horizontal parallelogram containing d
+                    const pVerts = [
+                        new THREE.Vector3(-2.2, -0.2, -1.9),
+                        new THREE.Vector3(2.5, 0.2, -1.5),
+                        new THREE.Vector3(2.2, 0.2, 1.9),
+                        new THREE.Vector3(-2.5, -0.2, 1.5)
+                    ];
+                    addPolygonPlane(pVerts, 0x0ea5e9, 0.26, true, 0x38bdf8, "(P)");
+                    add3DLabel(new THREE.Vector3(-2.05, -0.1, 1.25), "(P)", "plane");
+
+                    // Plane (Q): inclined plane intersecting (P) along d
+                    const qVerts = [
+                        new THREE.Vector3(-2.35, -1.65, -0.95),
+                        new THREE.Vector3(2.35, -1.25, -0.55),
+                        new THREE.Vector3(2.35, 1.65, 0.95),
+                        new THREE.Vector3(-2.35, 1.25, 0.55)
+                    ];
+                    addPolygonPlane(qVerts, 0xec4899, 0.26, true, 0xf472b6, "(Q)");
+                    add3DLabel(new THREE.Vector3(1.85, 1.45, 0.75), "(Q)", "plane");
+
+                    registerDynamicEdge(d1, d2, {
+                        name: "Giao tuyến d = (P) ∩ (Q)",
+                        color: 0xfacc15,
+                        radius: 0.052,
+                        noOcclusion: true
+                    });
+                    add3DLabel(d1.clone().add(new THREE.Vector3(-0.35, 0.18, 0)), "d = (P) ∩ (Q)", "highlight");
+                    break;
+                }
+
+                case "p1_c18":
+                case "p2_c4": {
+                    const S = new THREE.Vector3(0.0, 2.4, 0.25);
+                    const B = new THREE.Vector3(-2.2, -0.9, -0.65);
+                    const C = new THREE.Vector3(2.2, -0.9, -0.65);
+                    const A = new THREE.Vector3(0.35, -0.9, 1.75);
+
+                    const M = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5);
+                    const N = new THREE.Vector3().addVectors(A, C).multiplyScalar(0.5);
+                    const G = new THREE.Vector3().add(A).add(B).add(C).divideScalar(3);
+
+                    const tetra = buildDynamicTetrahedron(S, B, A, C, { apex: 'S', v1: 'B', v2: 'A', v3: 'C' }, {
+                        eA2: model.id === "p2_c4" ? 0x22c55e : 0xe2e8f0
+                    });
+
+                    registerPolygonFace([S, B, N], { name: '(SBN)', color: 0xf59e0b, opacity: 0.16, occluder: false, isHelperSection: true });
+                    registerPolygonFace([S, C, M], { name: '(SCM)', color: 0xec4899, opacity: 0.16, occluder: false, isHelperSection: true });
+
+                    registerDynamicEdge(S, M, { name: 'SM ⊂ (SAB)', color: 0xe2e8f0, radius: 0.035, onFace: tetra.faces.f12 });
+                    registerDynamicEdge(S, N, { name: 'SN ⊂ (SAC)', color: 0xe2e8f0, radius: 0.035, onFace: tetra.faces.f23 });
+
+                    registerDynamicEdge(B, N, { name: 'BN ⊂ (ABC)', color: 0xfbbf24, radius: 0.032, onFace: tetra.faces.fBase });
+                    registerDynamicEdge(C, M, { name: 'CM ⊂ (ABC)', color: 0xfbbf24, radius: 0.032, onFace: tetra.faces.fBase });
+
+                    registerDynamicEdge(S, G, { name: 'SG = (SBN) ∩ (SCM)', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.048, strictlyInsidePoly: true });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.09, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.09, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(C, "C", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(M, "M", 0xfbbf24, 0.085, new THREE.Vector3(-0.22, -0.22, 0.1));
+                    addPointSphere(N, "N", 0xfbbf24, 0.085, new THREE.Vector3(0.24, -0.22, 0.1));
+                    addPointSphere(G, "G", 0xf43f5e, 0.105, new THREE.Vector3(0.05, -0.26, 0));
+                    break;
+                }
+
+                case "p1_c19": {
+                    const S = new THREE.Vector3(0.0, 2.35, 0.25);
+                    const B = new THREE.Vector3(-2.15, -0.9, -0.65);
+                    const C = new THREE.Vector3(2.15, -0.9, -0.65);
+                    const A = new THREE.Vector3(0.3, -0.9, 1.7);
+
+                    const M = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5);
+                    const N = new THREE.Vector3().addVectors(A, C).multiplyScalar(0.5);
+
+                    buildDynamicTetrahedron(S, B, A, C, { apex: 'S', v1: 'B', v2: 'A', v3: 'C' }, {
+                        f12: 0x0ea5e9,
+                        f23: 0xa855f7,
+                        eA2: 0xf43f5e,
+                        rA2: 0.052
+                    });
+
+                    addPointSphere(S, "S", 0xf43f5e, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0xf43f5e, 0.1, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.09, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(C, "C", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(M, "M", 0xfacc15, 0.085, new THREE.Vector3(-0.22, -0.22, 0.1));
+                    addPointSphere(N, "N", 0xfacc15, 0.085, new THREE.Vector3(0.24, -0.22, 0.1));
+                    break;
+                }
+
+                case "p1_c20": {
+                    const { face } = addParallelogramPlane("mp(A, d)", 0, 0x0ea5e9, 0.25, 1.05);
+                    const A = new THREE.Vector3(-0.5, 0, -0.85);
+                    const L1 = new THREE.Vector3(-2.1, 0, 0.75);
+                    const L2 = new THREE.Vector3(2.2, 0, 0.55);
+                    const B = L1.clone().lerp(L2, 0.32);
+                    const C = L1.clone().lerp(L2, 0.74);
+
+                    registerDynamicEdge(L1, L2, { name: 'Đường thẳng d', color: 0x22c55e, radius: 0.042, onFace: face });
+                    add3DLabel(L1.clone().add(new THREE.Vector3(-0.2, 0.18, 0)), "d", "line");
+
+                    addPointSphere(A, "A", 0xf43f5e, 0.11);
+                    addPointSphere(B, "B", 0xfacc15, 0.09);
+                    addPointSphere(C, "C", 0xfacc15, 0.09);
+                    break;
+                }
+
+                case "p1_c21": {
+                    const { face } = addParallelogramPlane("mp(a, b)", 0, 0x0ea5e9, 0.25, 1.05);
+                    const a1 = new THREE.Vector3(-2.0, 0, -0.95);
+                    const a2 = new THREE.Vector3(2.0, 0, 0.95);
+                    const b1 = new THREE.Vector3(-1.9, 0, 1.05);
+                    const b2 = new THREE.Vector3(1.9, 0, -1.05);
+
+                    registerDynamicEdge(a1, a2, { name: 'Đường thẳng a', color: 0xfacc15, radius: 0.04, onFace: face });
+                    registerDynamicEdge(b1, b2, { name: 'Đường thẳng b', color: 0x34d399, radius: 0.04, onFace: face });
+                    addPointSphere(new THREE.Vector3(0, 0, 0), "I", 0xf43f5e, 0.095);
+
+                    add3DLabel(a2.clone().add(new THREE.Vector3(0.2, 0.18, 0)), "a", "line");
+                    add3DLabel(b2.clone().add(new THREE.Vector3(0.2, 0.18, 0)), "b", "line");
+                    break;
+                }
+
+                case "p1_c22": {
+                    const { face } = addParallelogramPlane("mp(a, b)", -0.8, 0x0ea5e9, 0.25, 1.1);
+                    const M = new THREE.Vector3(0, -0.8, 0);
+                    const S = new THREE.Vector3(0.15, 1.95, -0.05);
+
+                    const a1 = new THREE.Vector3(-2.1, -0.8, -0.85);
+                    const a2 = new THREE.Vector3(2.1, -0.8, 0.85);
+                    const b1 = new THREE.Vector3(-1.9, -0.8, 0.95);
+                    const b2 = new THREE.Vector3(1.9, -0.8, -0.95);
+
+                    registerDynamicEdge(a1, a2, { name: 'Đường thẳng a', color: 0x38bdf8, radius: 0.038, onFace: face });
+                    registerDynamicEdge(b1, b2, { name: 'Đường thẳng b', color: 0x34d399, radius: 0.038, onFace: face });
+                    registerDynamicEdge(S, M, { name: 'Giao tuyến SM = mp(S,a) ∩ mp(S,b)', color: 0xf43f5e, dashedColor: 0xfbbf24, radius: 0.05 });
+
+                    addPointSphere(S, "S", 0xf43f5e, 0.11, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(M, "M", 0xfacc15, 0.105, new THREE.Vector3(0.15, -0.25, 0));
+                    add3DLabel(a2.clone().add(new THREE.Vector3(0.2, 0.15, 0)), "a", "line");
+                    add3DLabel(b2.clone().add(new THREE.Vector3(0.2, 0.15, 0)), "b", "line");
+                    break;
+                }
+
+                case "p1_c23": {
+                    const S = new THREE.Vector3(0.0, 2.35, 0.25);
+                    const A = new THREE.Vector3(-2.1, -0.85, -0.8);
+                    const C = new THREE.Vector3(2.15, -0.85, -0.55);
+                    const B = new THREE.Vector3(0.25, -0.85, 1.65);
+
+                    const D = S.clone().lerp(A, 0.48);
+                    const E = S.clone().lerp(B, 0.56);
+
+                    const tetra = buildDynamicTetrahedron(S, A, B, C, { apex: 'S', v1: 'A', v2: 'B', v3: 'C' }, {
+                        f12: 0x0ea5e9
+                    });
+
+                    registerDynamicEdge(D, E, {
+                        name: 'DE ⊂ (SAB)',
+                        color: 0xf43f5e,
+                        dashedColor: 0xf59e0b,
+                        radius: 0.048,
+                        onFace: tetra.faces.f12
+                    });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.25, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.095, new THREE.Vector3(-0.25, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.25, -0.05, 0));
+                    addPointSphere(D, "D", 0xfacc15, 0.095, new THREE.Vector3(-0.26, 0.1, 0));
+                    addPointSphere(E, "E", 0xfacc15, 0.095, new THREE.Vector3(0.24, 0.08, 0));
+                    break;
+                }
+
+                case "p1_c24":
+                case "p1_c25":
+                case "p3_c3": {
+                    // S positioned above the base centroid (z = +0.25) so (SDA) is strictly back-facing from front views
+                    const S = new THREE.Vector3(0.0, 2.35, 0.28);
+                    const A = new THREE.Vector3(-2.15, -0.9, -0.85);
+                    const D = new THREE.Vector3(2.15, -0.9, -0.85);
+                    const B = new THREE.Vector3(-0.95, -0.9, 1.35);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.35);
+
+                    buildDynamicQuadPyramid(S, A, B, C, D, {
+                        fBase: model.id === "p1_c24" ? 0x10b981 : 0x1e293b
+                    });
+
+                    addPointSphere(S, "S", 0xf43f5e, 0.105, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.095, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(-0.15, -0.28, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.15, -0.28, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    break;
+                }
+
+                case "p1_c26": {
+                    const S = new THREE.Vector3(0.0, 2.35, 0.2);
+                    const A = new THREE.Vector3(-0.95, -0.9, -0.9);
+                    const D = new THREE.Vector3(1.95, -0.9, -0.9);
+                    const B = new THREE.Vector3(-1.95, -0.9, 1.15);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.15);
+
+                    buildDynamicQuadPyramid(S, A, B, C, D, { fSBC: 0xf43f5e });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0xfbbf24, 0.09, new THREE.Vector3(-0.2, 0.18, -0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(-0.25, -0.22, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.2, -0.25, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    break;
+                }
+
+                case "p1_c27":
+                case "p1_c28":
+                case "p3_c4": {
+                    const A = new THREE.Vector3(0.0, 2.3, 0.25);
+                    const B = new THREE.Vector3(-2.1, -0.85, -0.8);
+                    const D = new THREE.Vector3(2.15, -0.85, -0.55);
+                    const C = new THREE.Vector3(0.25, -0.85, 1.65);
+
+                    if (model.id === "p1_c28") {
+                        buildDynamicTetrahedron(A, B, C, D, { apex: 'A', v1: 'B', v2: 'C', v3: 'D' }, {
+                            eA1: 0xf43f5e, rA1: 0.055,
+                            e23: 0x22c55e, r23: 0.055,
+                            eA2: 0x94a3b8, eA3: 0x94a3b8, e12: 0x94a3b8, e13: 0x94a3b8
+                        });
+                    } else if (model.id === "p3_c4") {
+                        buildDynamicTetrahedron(A, B, C, D, { apex: 'A', v1: 'B', v2: 'C', v3: 'D' }, {
+                            eA1: 0xf43f5e, e23: 0xf43f5e, rA1: 0.05, r23: 0.05,
+                            eA2: 0x38bdf8, e13: 0x38bdf8, d13: 0xfbbf24, rA2: 0.05, r13: 0.05,
+                            eA3: 0x22c55e, e12: 0x22c55e, rA3: 0.05, r12: 0.05
+                        });
+                    } else {
+                        buildDynamicTetrahedron(A, B, C, D, { apex: 'A', v1: 'B', v2: 'C', v3: 'D' }, {
+                            f12: 0x0ea5e9, f23: 0xa855f7, f13: 0xf43f5e, fBase: 0x10b981
+                        });
+                    }
+
+                    addPointSphere(A, "A", 0xf8fafc, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(B, "B", 0xf8fafc, 0.1, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(C, "C", 0xf8fafc, 0.1, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(D, "D", 0xf8fafc, 0.1, new THREE.Vector3(0.26, -0.05, 0));
+                    break;
+                }
+
+                case "p1_c29": {
+                    // Exact collinear geometry: N = AB ∩ CD at (0, -0.75, 1.4375)
+                    const S = new THREE.Vector3(0.0, 2.45, -0.15);
+                    const A = new THREE.Vector3(-2.1, -0.75, -1.1);
+                    const D = new THREE.Vector3(2.1, -0.75, -1.1);
+                    const B = new THREE.Vector3(-0.9, -0.75, 0.35);
+                    const C = new THREE.Vector3(0.9, -0.75, 0.35);
+                    const N = new THREE.Vector3(0.0, -0.75, 1.4375);
+                    const M = S.clone().lerp(C, 0.52);
+
+                    const pyr = buildDynamicQuadPyramid(S, A, B, C, D);
+
+                    registerDynamicEdge(B, N, {
+                        name: 'BN (Kéo dài AB)',
+                        color: 0x10b981,
+                        radius: 0.038,
+                        coplanarFaces: [pyr.faces.fSAB, pyr.faces.fBase]
+                    });
+                    registerDynamicEdge(C, N, {
+                        name: 'CN (Kéo dài CD)',
+                        color: 0x10b981,
+                        radius: 0.038,
+                        coplanarFaces: [pyr.faces.fSCD, pyr.faces.fBase]
+                    });
+
+                    registerPolygonFace([A, N, M], { name: '(ABM)', color: 0xf59e0b, opacity: 0.18, occluder: false, isHelperSection: true });
+                    registerPolygonFace([S, N, D], { name: '(SCD)', color: 0xec4899, opacity: 0.16, occluder: false, isHelperSection: true });
+
+                    registerDynamicEdge(M, N, {
+                        name: 'MN = (ABM) ∩ (SCD)',
+                        color: 0xf43f5e,
+                        radius: 0.052,
+                        coplanarFaces: [pyr.faces.fSCD]
+                    });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.09, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.09, new THREE.Vector3(-0.25, -0.18, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.09, new THREE.Vector3(0.25, -0.18, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(M, "M", 0xfacc15, 0.1, new THREE.Vector3(0.26, 0.1, 0));
+                    addPointSphere(N, "N", 0xf43f5e, 0.105, new THREE.Vector3(0, -0.28, 0.15));
+                    break;
+                }
+
+                case "p1_c30": {
+                    const A = new THREE.Vector3(0.0, 2.35, 0.25);
+                    const B = new THREE.Vector3(-2.15, -0.9, -0.65);
+                    const D = new THREE.Vector3(2.15, -0.9, -0.65);
+                    const C = new THREE.Vector3(0.25, -0.9, 1.65);
+
+                    const M = C.clone().lerp(D, 0.45);
+                    const E = B.clone().lerp(M, 0.62);
+                    const F = A.clone().lerp(E, 0.52);
+                    const N = A.clone().lerp(M, 0.618);
+
+                    const tetra = buildDynamicTetrahedron(A, B, C, D, { apex: 'A', v1: 'B', v2: 'C', v3: 'D' }, {
+                        f23: 0x10b981
+                    });
+
+                    registerDynamicEdge(A, M, { name: 'AM ⊂ (ACD)', color: 0x22c55e, radius: 0.042, onFace: tetra.faces.f23 });
+                    registerDynamicEdge(B, M, { name: 'BM ⊂ (BCD)', color: 0xfbbf24, radius: 0.032, onFace: tetra.faces.fBase });
+                    registerDynamicEdge(A, E, { name: 'AE (Trong tứ diện)', color: 0xfbbf24, dashedColor: 0xfbbf24, radius: 0.032, strictlyInsidePoly: true });
+                    registerDynamicEdge(B, N, { name: 'BN (Đường thẳng BF)', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.042, strictlyInsidePoly: true });
+
+                    addPointSphere(A, "A", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(E, "E", 0xfacc15, 0.085, new THREE.Vector3(-0.05, -0.25, 0));
+                    addPointSphere(F, "F", 0xfacc15, 0.085, new THREE.Vector3(-0.22, 0.08, 0));
+                    addPointSphere(M, "M", 0x22c55e, 0.095, new THREE.Vector3(0.25, -0.2, 0.1));
+                    addPointSphere(N, "N", 0xf43f5e, 0.11, new THREE.Vector3(0.26, 0.1, 0));
+                    break;
+                }
+
+                case "p2_c1": {
+                    const { face } = addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.25, 1.1);
+                    const A = new THREE.Vector3(-0.4, 0, 0.15);
+                    const B = new THREE.Vector3(1.25, 0, -0.45);
+                    const C = new THREE.Vector3(-1.35, 1.85, 0.65);
+
+                    const dirA = new THREE.Vector3().subVectors(B, A).normalize();
+                    registerDynamicEdge(
+                        A.clone().addScaledVector(dirA, -1.6),
+                        B.clone().addScaledVector(dirA, 1.2),
+                        { name: 'a ⊂ (P)', color: 0x22c55e, radius: 0.04, onFace: face }
+                    );
+                    add3DLabel(B.clone().addScaledVector(dirA, 1.35), "a", "line");
+
+                    const dirB = new THREE.Vector3().subVectors(A, C).normalize();
+                    const belowPt = A.clone().addScaledVector(dirB, 1.65);
+                    registerDynamicEdge(C.clone().addScaledVector(dirB, -0.4), belowPt, {
+                        name: 'b (Cắt (P) tại A)',
+                        color: 0xf43f5e,
+                        dashedColor: 0xf59e0b,
+                        radius: 0.042
+                    });
+                    add3DLabel(C.clone().add(new THREE.Vector3(-0.25, 0.25, 0)), "b", "highlight");
+
+                    addPointSphere(A, "A", 0xfacc15, 0.105, new THREE.Vector3(-0.1, 0.25, 0.15));
+                    addPointSphere(B, "B", 0x22c55e, 0.10, new THREE.Vector3(0, 0.24, 0));
+                    addPointSphere(C, "C", 0xf43f5e, 0.105, new THREE.Vector3(0.24, 0.1, 0));
+                    break;
+                }
+
+                case "p2_c2": {
+                    const S = new THREE.Vector3(0.0, 2.35, 0.05);
+                    const A = new THREE.Vector3(-2.1, -0.85, -0.8);
+                    const C = new THREE.Vector3(2.15, -0.85, -0.55);
+                    const B = new THREE.Vector3(0.25, -0.85, 1.65);
+                    const M = B.clone().lerp(C, 0.52);
+
+                    const tetra = buildDynamicTetrahedron(S, A, B, C, { apex: 'S', v1: 'A', v2: 'B', v3: 'C' }, {
+                        f23: 0x10b981
+                    });
+
+                    registerDynamicEdge(S, M, { name: 'SM ⊂ (SBC)', color: 0x22c55e, radius: 0.045, onFace: tetra.faces.f23, allowPartialSplit: false });
+                    registerDynamicEdge(A, M, { name: 'AM ⊂ (ABC)', color: 0xfbbf24, dashedColor: 0xfbbf24, radius: 0.036, onFace: tetra.faces.fBase, allowPartialSplit: false });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.095, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(M, "M", 0x22c55e, 0.105, new THREE.Vector3(0.25, -0.22, 0.1));
+                    break;
+                }
+
+                case "p2_c3": {
+                    const { face } = addParallelogramPlane("(ABC)", 0, 0x0ea5e9, 0.22, 1.15);
+                    const A = new THREE.Vector3(-0.3, 0, -1.1);
+                    const B = new THREE.Vector3(-1.85, 0, 0.85);
+                    const C = new THREE.Vector3(0.75, 0, 0.85);
+                    const M = new THREE.Vector3(2.05, 0, 0.85);
+                    const N = A.clone().lerp(B, 0.55);
+
+                    registerPolygonFace([A, B, C], { name: 'ΔABC', color: 0x38bdf8, opacity: 0.34, occluder: false });
+                    registerDynamicEdge(A, B, { name: 'AB', color: 0xe2e8f0, radius: 0.038, onFace: face });
+                    registerDynamicEdge(A, C, { name: 'AC', color: 0xe2e8f0, radius: 0.038, onFace: face });
+                    registerDynamicEdge(new THREE.Vector3(-2.4, 0, 0.85), new THREE.Vector3(2.55, 0, 0.85), { name: 'Đường thẳng BC', color: 0x38bdf8, radius: 0.038, onFace: face });
+
+                    registerDynamicEdge(A, M, { name: 'AM ⊂ (ABC)', color: 0xf59e0b, radius: 0.04, onFace: face });
+                    registerDynamicEdge(M, N, { name: 'MN ⊂ (ABC)', color: 0xf43f5e, radius: 0.04, onFace: face });
+
+                    addPointSphere(A, "A", 0x38bdf8, 0.095);
+                    addPointSphere(B, "B", 0x38bdf8, 0.095);
+                    addPointSphere(C, "C", 0x38bdf8, 0.095);
+                    addPointSphere(M, "M", 0xf59e0b, 0.105);
+                    addPointSphere(N, "N", 0xf43f5e, 0.105, new THREE.Vector3(-0.24, 0.18, 0));
+                    break;
+                }
+
+                case "p2_c5": {
+                    const { face } = addParallelogramPlane("mp(a, b)", -0.85, 0x0ea5e9, 0.22, 1.15);
+                    const M = new THREE.Vector3(-0.9, -0.85, 0.1);
+                    const A = new THREE.Vector3(0.95, -0.85, -0.85);
+                    const B = new THREE.Vector3(1.05, -0.85, 0.85);
+                    const S = new THREE.Vector3(-0.1, 1.95, 0.0);
+
+                    const dirA = new THREE.Vector3().subVectors(A, M).normalize();
+                    const dirB = new THREE.Vector3().subVectors(B, M).normalize();
+                    const dirC = new THREE.Vector3().subVectors(B, A).normalize();
+
+                    registerDynamicEdge(M.clone().addScaledVector(dirA, -0.9), A.clone().addScaledVector(dirA, 0.9), { name: 'a ⊂ mp(a,b)', color: 0x38bdf8, radius: 0.036, onFace: face });
+                    registerDynamicEdge(M.clone().addScaledVector(dirB, -0.9), B.clone().addScaledVector(dirB, 0.9), { name: 'b ⊂ mp(a,b)', color: 0x34d399, radius: 0.036, onFace: face });
+                    registerDynamicEdge(A.clone().addScaledVector(dirC, -0.85), B.clone().addScaledVector(dirC, 0.85), { name: 'c ⊂ mp(a,b)', color: 0xf43f5e, radius: 0.04, onFace: face });
+
+                    add3DLabel(A.clone().addScaledVector(dirA, 1.05), "a", "line");
+                    add3DLabel(B.clone().addScaledVector(dirB, 1.05), "b", "line");
+                    add3DLabel(B.clone().addScaledVector(dirC, 1.0), "c", "highlight");
+
+                    registerDynamicEdge(S, M, { name: 'SM = mp(S,a) ∩ mp(S,b)', color: 0xfacc15, radius: 0.046 });
+                    registerDynamicEdge(S, A, { name: 'SA = mp(S,a) ∩ mp(S,c)', color: 0x38bdf8, radius: 0.042 });
+                    registerDynamicEdge(S, B, { name: 'SB = mp(S,b) ∩ mp(S,c)', color: 0x34d399, radius: 0.042 });
+
+                    addPointSphere(S, "S", 0xfacc15, 0.105, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(M, "M", 0xfacc15, 0.1, new THREE.Vector3(-0.22, 0.22, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.095, new THREE.Vector3(0, 0.24, 0));
+                    addPointSphere(B, "B", 0x34d399, 0.095, new THREE.Vector3(0, 0.24, 0));
+                    break;
+                }
+
+                case "p2_c6": {
+                    const S = new THREE.Vector3(0.0, 2.4, 0.2);
+                    const A = new THREE.Vector3(-0.95, -0.9, -0.9);
+                    const D = new THREE.Vector3(1.95, -0.9, -0.9);
+                    const B = new THREE.Vector3(-1.95, -0.9, 1.15);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.15);
+                    const O = new THREE.Vector3(0.0, -0.9, 0.125);
+
+                    const pyr = buildDynamicQuadPyramid(S, A, B, C, D);
+
+                    registerDynamicEdge(A, C, { name: 'AC ⊂ (ABCD)', color: 0xfbbf24, dashedColor: 0xfbbf24, radius: 0.032, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(B, D, { name: 'BD ⊂ (ABCD)', color: 0xfbbf24, dashedColor: 0xfbbf24, radius: 0.032, onFace: pyr.faces.fBase });
+
+                    registerPolygonFace([S, A, C], { name: '(SAC)', color: 0xf59e0b, opacity: 0.15, occluder: false, isHelperSection: true });
+                    registerPolygonFace([S, B, D], { name: '(SBD)', color: 0xec4899, opacity: 0.15, occluder: false, isHelperSection: true });
+
+                    registerDynamicEdge(S, O, { name: 'SO = (SAC) ∩ (SBD)', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.052, strictlyInsidePoly: true });
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0xfbbf24, 0.085, new THREE.Vector3(-0.2, 0.18, -0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(-0.25, -0.22, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.2, -0.25, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(O, "O", 0xf43f5e, 0.105, new THREE.Vector3(0.05, -0.28, 0));
+                    break;
+                }
+
+                case "p3_c2": {
+                    const { face } = addParallelogramPlane("(P)", 0, 0x0ea5e9, 0.22, 1.15);
+                    const A = new THREE.Vector3(0.0, 0, -1.05);
+                    const L1 = new THREE.Vector3(-2.35, 0, 0.75);
+                    const L2 = new THREE.Vector3(2.35, 0, 0.75);
+
+                    const B = new THREE.Vector3(-1.45, 0, 0.75);
+                    const C = new THREE.Vector3(0.0, 0, 0.75);
+                    const D = new THREE.Vector3(1.45, 0, 0.75);
+
+                    registerDynamicEdge(L1, L2, { name: 'Đường thẳng d (qua B,C,D)', color: 0xfacc15, radius: 0.044, onFace: face });
+                    add3DLabel(L1.clone().add(new THREE.Vector3(-0.22, 0.18, 0)), "d", "line");
+
+                    [
+                        { pt: B, color: 0x38bdf8, name: 'Đường thẳng AB' },
+                        { pt: C, color: 0x22c55e, name: 'Đường thẳng AC' },
+                        { pt: D, color: 0xf43f5e, name: 'Đường thẳng AD' }
+                    ].forEach(item => {
+                        const dir = new THREE.Vector3().subVectors(item.pt, A).normalize();
+                        registerDynamicEdge(
+                            A.clone().addScaledVector(dir, -0.45),
+                            item.pt.clone().addScaledVector(dir, 0.45),
+                            { name: item.name, color: item.color, radius: 0.038, onFace: face }
+                        );
+                    });
+
+                    addPointSphere(A, "A", 0xf8fafc, 0.105);
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(0, -0.25, 0.15));
+                    addPointSphere(C, "C", 0x22c55e, 0.095, new THREE.Vector3(0, -0.25, 0.15));
+                    addPointSphere(D, "D", 0xf43f5e, 0.095, new THREE.Vector3(0, -0.25, 0.15));
+                    break;
+                }
+
+                case "p3_c5": {
+                    const S = new THREE.Vector3(0.0, 2.4, 0.0);
+                    const A = new THREE.Vector3(-2.0, -0.9, 0.15);
+                    const B = new THREE.Vector3(-0.95, -0.9, 1.45);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.45);
+                    const D = new THREE.Vector3(2.0, -0.9, 0.15);
+                    const E = new THREE.Vector3(0.0, -0.9, -1.25);
+
+                    const centroid = new THREE.Vector3(0, -0.2, 0.2);
+
+                    const fSAB  = registerPolygonFace([S, A, B], { name: '(SAB)', color: 0x0ea5e9, opacity: 0.21, insidePoint: centroid });
+                    const fSBC  = registerPolygonFace([S, B, C], { name: '(SBC)', color: 0x6366f1, opacity: 0.21, insidePoint: centroid });
+                    const fSCD  = registerPolygonFace([S, C, D], { name: '(SCD)', color: 0x10b981, opacity: 0.21, insidePoint: centroid });
+                    const fSDE  = registerPolygonFace([S, D, E], { name: '(SDE)', color: 0xa855f7, opacity: 0.16, insidePoint: centroid });
+                    const fSEA  = registerPolygonFace([S, E, A], { name: '(SEA)', color: 0xf59e0b, opacity: 0.16, insidePoint: centroid });
+                    const fBase = registerPolygonFace([A, B, C, D, E], { name: '(ABCDE)', color: 0x1e293b, opacity: 0.26, insidePoint: centroid });
+
+                    registerDynamicEdge(S, A, { name: 'SA', color: 0x38bdf8, radius: 0.038, adjacentFaces: [fSAB, fSEA] });
+                    registerDynamicEdge(S, B, { name: 'SB', color: 0x38bdf8, radius: 0.038, adjacentFaces: [fSAB, fSBC] });
+                    registerDynamicEdge(S, C, { name: 'SC', color: 0x38bdf8, radius: 0.038, adjacentFaces: [fSBC, fSCD] });
+                    registerDynamicEdge(S, D, { name: 'SD', color: 0x38bdf8, radius: 0.038, adjacentFaces: [fSCD, fSDE] });
+                    registerDynamicEdge(S, E, { name: 'SE', color: 0x38bdf8, radius: 0.038, adjacentFaces: [fSDE, fSEA] });
+
+                    registerDynamicEdge(A, B, { name: 'AB', color: 0x10b981, radius: 0.038, adjacentFaces: [fSAB, fBase] });
+                    registerDynamicEdge(B, C, { name: 'BC', color: 0x10b981, radius: 0.038, adjacentFaces: [fSBC, fBase] });
+                    registerDynamicEdge(C, D, { name: 'CD', color: 0x10b981, radius: 0.038, adjacentFaces: [fSCD, fBase] });
+                    registerDynamicEdge(D, E, { name: 'DE', color: 0x10b981, radius: 0.038, adjacentFaces: [fSDE, fBase] });
+                    registerDynamicEdge(E, A, { name: 'EA', color: 0x10b981, radius: 0.038, adjacentFaces: [fSEA, fBase] });
+
+                    addPointSphere(S, "S", 0xf43f5e, 0.105, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.09, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.09, new THREE.Vector3(-0.18, -0.26, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.09, new THREE.Vector3(0.18, -0.26, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(E, "E", 0xfbbf24, 0.09, new THREE.Vector3(0.22, 0.18, -0.1));
+                    break;
+                }
+
+                case "p3_c6": {
+                    const S = new THREE.Vector3(0.0, 2.4, 0.0);
+                    const A = new THREE.Vector3(-2.1, -0.9, 0.25);
+                    const B = new THREE.Vector3(-0.95, -0.9, 1.45);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.45);
+                    const D = new THREE.Vector3(2.1, -0.9, 0.25);
+                    const E = new THREE.Vector3(0.95, -0.9, -1.15);
+                    const F = new THREE.Vector3(-0.95, -0.9, -1.15);
+
+                    const centroid = new THREE.Vector3(0, -0.2, 0.15);
+
+                    const fSAB  = registerPolygonFace([S, A, B], { name: '(SAB)', color: 0x0ea5e9, opacity: 0.21, insidePoint: centroid });
+                    const fSBC  = registerPolygonFace([S, B, C], { name: '(SBC)', color: 0x6366f1, opacity: 0.21, insidePoint: centroid });
+                    const fSCD  = registerPolygonFace([S, C, D], { name: '(SCD)', color: 0x10b981, opacity: 0.21, insidePoint: centroid });
+                    const fSDE  = registerPolygonFace([S, D, E], { name: '(SDE)', color: 0xa855f7, opacity: 0.15, insidePoint: centroid });
+                    const fSEF  = registerPolygonFace([S, E, F], { name: '(SEF)', color: 0xf43f5e, opacity: 0.15, insidePoint: centroid });
+                    const fSFA  = registerPolygonFace([S, F, A], { name: '(SFA)', color: 0xf59e0b, opacity: 0.15, insidePoint: centroid });
+                    const fBase = registerPolygonFace([A, B, C, D, E, F], { name: '(ABCDEF)', color: 0x1e293b, opacity: 0.26, insidePoint: centroid });
+
+                    registerDynamicEdge(S, A, { name: 'SA', color: 0x38bdf8, radius: 0.036, adjacentFaces: [fSAB, fSFA] });
+                    registerDynamicEdge(S, B, { name: 'SB', color: 0x38bdf8, radius: 0.036, adjacentFaces: [fSAB, fSBC] });
+                    registerDynamicEdge(S, C, { name: 'SC', color: 0x38bdf8, radius: 0.036, adjacentFaces: [fSBC, fSCD] });
+                    registerDynamicEdge(S, D, { name: 'SD', color: 0x38bdf8, radius: 0.036, adjacentFaces: [fSCD, fSDE] });
+                    registerDynamicEdge(S, E, { name: 'SE', color: 0x38bdf8, radius: 0.036, adjacentFaces: [fSDE, fSEF] });
+                    registerDynamicEdge(S, F, { name: 'SF', color: 0x38bdf8, radius: 0.036, adjacentFaces: [fSEF, fSFA] });
+
+                    registerDynamicEdge(A, B, { name: 'AB', color: 0x10b981, radius: 0.036, adjacentFaces: [fSAB, fBase] });
+                    registerDynamicEdge(B, C, { name: 'BC', color: 0x10b981, radius: 0.036, adjacentFaces: [fSBC, fBase] });
+                    registerDynamicEdge(C, D, { name: 'CD', color: 0x10b981, radius: 0.036, adjacentFaces: [fSCD, fBase] });
+                    registerDynamicEdge(D, E, { name: 'DE', color: 0x10b981, radius: 0.036, adjacentFaces: [fSDE, fBase] });
+                    registerDynamicEdge(E, F, { name: 'EF', color: 0x10b981, radius: 0.036, adjacentFaces: [fSEF, fBase] });
+                    registerDynamicEdge(F, A, { name: 'FA', color: 0x10b981, radius: 0.036, adjacentFaces: [fSFA, fBase] });
+
+                    addPointSphere(S, "S", 0xf43f5e, 0.105, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.09, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.09, new THREE.Vector3(-0.18, -0.26, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.09, new THREE.Vector3(0.18, -0.26, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(E, "E", 0xfbbf24, 0.085, new THREE.Vector3(0.22, 0.18, -0.1));
+                    addPointSphere(F, "F", 0xfbbf24, 0.085, new THREE.Vector3(-0.22, 0.18, -0.1));
+                    break;
+                }
+            }
+
+            highlightedEdgeIndex = -1;
+            updateRealTimeOcclusion(true);
+        }
+
+        // ============================================================================
+        // 5. UI CONTROLLERS, URL ROUTING, NAVIGATION & INTERACTIVE QUIZ LOGIC
+        // ============================================================================
+        function selectModel(index, updateUrlHash = true) {
+            if (index < 0) index = MODELS_DATA.length - 1;
+            if (index >= MODELS_DATA.length) index = 0;
+            currentModelIndex = index;
+
+            const model = MODELS_DATA[currentModelIndex];
+
+            if (updateUrlHash) {
+                try {
+                    history.replaceState(null, '', `#${model.urlHash}`);
+                } catch (e) {
+                    try {
+                        window.location.hash = model.urlHash;
+                    } catch (err) {}
+                }
+            }
+
+            const headerUrlInput = document.getElementById('header-url-input');
+            const panelUrlBadgeEl = document.getElementById('panel-url-badge');
+            if (headerUrlInput) headerUrlInput.value = model.fullUrlDisplay;
+            if (panelUrlBadgeEl) panelUrlBadgeEl.textContent = model.fullUrlDisplay;
+
+            buildModelScene(model);
+            resetCameraView();
+
+            document.getElementById('hud-model-badge').textContent = model.label;
+            document.getElementById('hud-model-category').textContent = model.shortTitle;
+            document.getElementById('hud-model-index').textContent = `#${model.urlHash}`;
+            document.getElementById('hud-model-summary').textContent = model.guide3D;
+            document.getElementById('hud-center-title').textContent = `${model.label.toUpperCase()} (${model.fullUrlDisplay})`;
+
+            document.getElementById('panel-label-badge').textContent = model.label;
+            document.getElementById('panel-title').textContent = model.shortTitle;
+            document.getElementById('panel-question-text').textContent = model.question;
+            document.getElementById('panel-3d-guide').textContent = model.guide3D;
+            document.getElementById('panel-answer-badge').textContent = `Đáp án: ${model.answer}`;
+            document.getElementById('panel-explanation').textContent = model.explanation;
+
+            const partTypeEl = document.getElementById('panel-part-type');
+            if (model.part === 1) partTypeEl.textContent = 'Phần I • Trắc nghiệm 4 lựa chọn';
+            else if (model.part === 2) partTypeEl.textContent = 'Phần II • Đúng / Sai (4 ý)';
+            else partTypeEl.textContent = 'Phần III • Trả lời ngắn';
+
+            renderQuestionOptions(model);
+            renderSidebarList();
+
+            if (window.innerWidth < 1024) {
+                document.getElementById('sidebar-panel').classList.add('-translate-x-full');
+            }
+        }
+
+        function renderQuestionOptions(model) {
+            const container = document.getElementById('panel-options-container');
+            container.innerHTML = '';
+
+            if (model.part === 1 && model.options) {
+                model.options.forEach((optText, idx) => {
+                    const letter = ["A", "B", "C", "D"][idx];
+                    const isCorrect = letter === model.answer;
+                    const btn = document.createElement('button');
+                    btn.className = `w-full text-left px-3 py-2 rounded-xl border text-xs font-medium transition flex items-center justify-between gap-2 ${
+                        isCorrect
+                            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200 font-bold'
+                            : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`;
+                    btn.innerHTML = `
+                        <span>${optText}</span>
+                        ${isCorrect ? '<span class="px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">ĐÚNG</span>' : ''}
+                    `;
+                    container.appendChild(btn);
+                });
+            } else if (model.part === 2 && model.statements) {
+                model.statements.forEach(st => {
+                    const row = document.createElement('div');
+                    row.className = 'p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start justify-between gap-2 text-xs';
+                    const badge = st.isTrue
+                        ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-extrabold text-[10px] shrink-0">ĐÚNG</span>'
+                        : '<span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-extrabold text-[10px] shrink-0">SAI</span>';
+                    row.innerHTML = `
+                        <span class="text-slate-200 leading-relaxed">${st.text}</span>
+                        ${badge}
+                    `;
+                    container.appendChild(row);
+                });
+            } else if (model.part === 3) {
+                const box = document.createElement('div');
+                box.className = 'p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-between';
+                box.innerHTML = `
+                    <span class="text-xs font-semibold text-sky-300">Kết quả trả lời ngắn (Số nguyên):</span>
+                    <span class="px-3 py-1 rounded-lg bg-sky-500 text-white font-extrabold text-sm shadow">${model.shortAnswer}</span>
+                `;
+                container.appendChild(box);
+            }
+        }
+
+        function stepModel(delta) {
+            selectModel(currentModelIndex + delta, true);
+        }
+
+        function filterByPart(part) {
+            currentPartFilter = part;
+            document.querySelectorAll('.part-tab').forEach(btn => {
+                btn.className = 'part-tab py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white transition';
+            });
+            const activeBtn = document.getElementById(`filter-${part}`);
+            if (activeBtn) {
+                activeBtn.className = 'part-tab py-1.5 rounded-lg text-[11px] font-bold bg-sky-500 text-white shadow transition';
+            }
+            renderSidebarList();
+        }
+
+        function renderSidebarList() {
+            const listEl = document.getElementById('model-list');
+            const query = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+            listEl.innerHTML = '';
+
+            MODELS_DATA.forEach((m, index) => {
+                if (currentPartFilter !== 'all' && m.part !== currentPartFilter) return;
+                if (query) {
+                    const haystack = `${m.label} ${m.shortTitle} ${m.question} ${m.urlHash} ${m.fullUrlDisplay}`.toLowerCase();
+                    if (!haystack.includes(query)) return;
+                }
+
+                const isActive = index === currentModelIndex;
+                const item = document.createElement('button');
+                item.onclick = () => {
+                    switchMainView('studio');
+                    selectModel(index, true);
+                };
+                item.className = `w-full text-left p-2.5 rounded-xl border transition-all flex items-start gap-2.5 ${
+                    isActive
+                        ? 'bg-sky-500/15 border-sky-500/60 shadow-lg shadow-sky-500/5'
+                        : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-800/60 hover:border-slate-700'
+                }`;
+
+                const partBadgeColor =
+                    m.part === 1 ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' :
+                    m.part === 2 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                                   'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+
+                item.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg ${partBadgeColor} border flex items-center justify-center text-xs font-extrabold shrink-0 mt-0.5">
+                        ${m.qNum}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-xs font-extrabold ${isActive ? 'text-sky-300' : 'text-slate-100'}">${m.label}</span>
+                            <span class="text-[10px] font-mono text-emerald-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">#${m.urlHash}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 truncate mt-0.5">${m.shortTitle}</p>
+                    </div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function renderGridCatalog() {
+            const container = document.getElementById('grid-catalog-container');
+            container.innerHTML = '';
+
+            const partsInfo = [
+                { part: 1, title: "PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn (30 Mô hình: Câu 1 → Câu 30)", badge: "30 Mô Hình • #cau-1 → #cau-30" },
+                { part: 2, title: "PHẦN II. Câu trắc nghiệm Đúng / Sai (6 Mô hình: Câu 1 → Câu 6)", badge: "6 Mô Hình • #phan-2-cau-1 → #phan-2-cau-6" },
+                { part: 3, title: "PHẦN III. Câu trắc nghiệm trả lời ngắn (6 Mô hình: Câu 1 → Câu 6)", badge: "6 Mô Hình • #phan-3-cau-1 → #phan-3-cau-6" }
+            ];
+
+            partsInfo.forEach(pInfo => {
+                const section = document.createElement('div');
+                section.className = 'space-y-3';
+                section.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h3 class="text-sm sm:text-base font-extrabold text-sky-400">${pInfo.title}</h3>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300">${pInfo.badge}</span>
+                    </div>
+                `;
+
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3';
+
+                MODELS_DATA.forEach((m, idx) => {
+                    if (m.part !== pInfo.part) return;
+                    const card = document.createElement('div');
+                    card.onclick = () => {
+                        switchMainView('studio');
+                        selectModel(idx, true);
+                    };
+                    card.className = 'group cursor-pointer bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-sky-500/60 rounded-2xl p-4 transition-all flex flex-col justify-between gap-3 shadow-lg';
+                    card.innerHTML = `
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-sky-500/20 text-sky-300 border border-sky-500/30 group-hover:bg-sky-500 group-hover:text-white transition">
+                                    ${m.label}
+                                </span>
+                                <span class="text-[11px] font-bold text-emerald-400">Đáp án: ${m.answer}</span>
+                            </div>
+                            <h4 class="text-xs sm:text-sm font-bold text-white group-hover:text-sky-300 transition">
+                                ${m.shortTitle}
+                            </h4>
+                            <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                                ${m.question}
+                            </p>
+                        </div>
+                        <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                            <div class="flex items-center justify-between bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800/90">
+                                <code class="text-[10px] font-mono text-emerald-400 truncate">${m.fullUrlDisplay}</code>
+                                <button onclick="event.stopPropagation(); copyCurrentModelUrl(${idx});" class="text-[10px] font-bold text-sky-400 hover:text-sky-300 shrink-0 ml-2">
+                                    Copy URL
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-sky-400 font-semibold">
+                                <span>Mô hình #${idx + 1}/42</span>
+                                <span class="group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                                    Mở 3D <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                section.appendChild(grid);
+                container.appendChild(section);
+            });
+        }
+
+        function switchMainView(mode) {
+            const studioView = document.getElementById('studio-view');
+            const gridView = document.getElementById('grid-view');
+            const tabStudio = document.getElementById('tab-studio');
+            const tabGrid = document.getElementById('tab-grid');
+
+            if (mode === 'grid') {
+                studioView.classList.add('hidden');
+                gridView.classList.remove('hidden');
+                tabGrid.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-500 text-white shadow';
+                tabStudio.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white';
+                renderGridCatalog();
+            } else {
+                gridView.classList.add('hidden');
+                studioView.classList.remove('hidden');
+                tabStudio.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-500 text-white shadow';
+                tabGrid.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white';
+                setTimeout(syncCanvasAspectRatio, 30);
+            }
+        }
+
+        // Camera & Scene Quick Actions
+        function resetCameraView() {
+            if (!camera || !controls) return;
+            const model = MODELS_DATA[currentModelIndex];
+            if (model && model.defaultCam) {
+                camera.position.set(model.defaultCam[0], model.defaultCam[1], model.defaultCam[2]);
+            } else {
+                camera.position.set(0.35, 2.75, 7.35);
+            }
+            controls.target.set(0, 0.25, 0);
+            controls.update();
+            syncCanvasAspectRatio();
+            updateRealTimeOcclusion(true);
+        }
+
+        function flipCameraBackView() {
+            if (!camera || !controls) return;
+            const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+            camera.position.set(
+                controls.target.x - offset.x,
+                camera.position.y,
+                controls.target.z - offset.z
+            );
+            controls.update();
+            updateRealTimeOcclusion(true);
+        }
+
+        function lookFromBottomView() {
+            if (!camera || !controls) return;
+            camera.position.set(0.25, -5.8, 3.6);
+            controls.target.set(0, 0.1, 0);
+            controls.update();
+            updateRealTimeOcclusion(true);
+        }
+
+        function toggleAutoRotate() {
+            autoRotate = !autoRotate;
+            const btn = document.getElementById('btn-autorotate');
+            if (autoRotate) {
+                btn.className = 'px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-xs font-bold text-emerald-300 flex items-center gap-1 shrink-0 transition';
+            } else {
+                btn.className = 'px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1 shrink-0 transition';
+            }
+        }
+
+        function togglePlanesVisibility() {
+            showPlanes = !showPlanes;
+            activePlaneMeshes.forEach(m => { m.visible = showPlanes; });
+            const btn = document.getElementById('btn-toggle-planes');
+            btn.className = showPlanes
+                ? 'px-2.5 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-xs font-medium text-sky-300 flex items-center gap-1 shrink-0 transition'
+                : 'px-2.5 py-1.5 rounded-xl bg-slate-800 text-xs font-medium text-slate-400 flex items-center gap-1 shrink-0 transition';
+            updateRealTimeOcclusion(true);
+        }
+
+        function toggleLabelsVisibility() {
+            showLabels = !showLabels;
+            const btn = document.getElementById('btn-toggle-labels');
+            btn.className = showLabels
+                ? 'px-2.5 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-xs font-medium text-sky-300 flex items-center gap-1 shrink-0 transition'
+                : 'px-2.5 py-1.5 rounded-xl bg-slate-800 text-xs font-medium text-slate-400 flex items-center gap-1 shrink-0 transition';
+        }
+
+        function toggleGridHelper() {
+            showGrid = !showGrid;
+            if (gridHelper) gridHelper.visible = showGrid;
+            const btn = document.getElementById('btn-toggle-grid');
+            btn.className = showGrid
+                ? 'px-2.5 py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-xs font-medium text-sky-300 flex items-center gap-1 shrink-0 transition'
+                : 'px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1 shrink-0 transition';
+        }
+
+        function toggleMobileSidebar() {
+            const sb = document.getElementById('sidebar-panel');
+            sb.classList.toggle('-translate-x-full');
+        }
+
+        function toggleMobileInspector(forceState) {
+            const panel = document.getElementById('inspector-panel');
+            if (typeof forceState === 'boolean') {
+                if (forceState) panel.classList.remove('translate-x-full');
+                else panel.classList.add('translate-x-full');
+            } else {
+                panel.classList.toggle('translate-x-full');
+            }
+        }
+
+        // Start Application on Window Load & Check Deep-Link URL Hash (#cau-1, etc.)
+        window.onload = function () {
+            ensureSingleCleanRoot();
+            initThreeJS();
+            const initialIdx = resolveModelIndexFromUrl();
+            if (initialIdx !== -1) {
+                selectModel(initialIdx, false);
+            } else {
+                selectModel(0, true);
+            }
+        };
+    </script>
+</body>
+</html>
