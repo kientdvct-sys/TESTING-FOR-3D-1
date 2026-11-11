@@ -341,6 +341,18 @@
                                 <span>Nội dung câu hỏi</span>
                                 <span id="panel-part-type" class="text-sky-400">Phần I • Trắc nghiệm</span>
                             </div>
+
+                            <!-- Shared Cluster Context Card (Automatically shown & repeated for Clustered Questions) -->
+                            <div id="panel-cluster-box" class="hidden rounded-xl bg-indigo-950/35 border border-indigo-500/35 p-3 space-y-2">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <span id="panel-cluster-badge" class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/25 text-indigo-300 border border-indigo-500/40">
+                                        Chùm câu hỏi 12 – 14
+                                    </span>
+                                    <div id="panel-cluster-tabs" class="flex items-center gap-1"></div>
+                                </div>
+                                <div id="panel-cluster-stem" class="text-xs text-slate-200 leading-relaxed border-t border-indigo-500/20 pt-2"></div>
+                            </div>
+
                             <div id="panel-question-text" class="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium"></div>
                             <div id="panel-options-container" class="space-y-2 pt-1"></div>
                         </div>
@@ -392,8 +404,14 @@
         }
 
         // ============================================================================
-        // 1. COMPLETE DATABASE OF ALL 40 QUESTIONS FROM "Trắc nghiệm Hình học (5).pdf"
+        // 1. COMPLETE DATABASE OF ALL 40 QUESTIONS FROM "Đề ôn tập Hình học 11 - Bài 10 (1).pdf"
         // ============================================================================
+        const CLUSTER_STEM_12_14 = "<strong>Giả thiết chung (Câu 12, 13, 14):</strong> Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình thang với hai đáy là $AB$ và $CD$ thỏa mãn $AB = 2CD$. Gọi $O$ là giao điểm của $AC$ và $BD$, $E$ là giao điểm của $AD$ và $BC$. Gọi $M$ là trung điểm của cạnh $SA$. Mặt phẳng $(MBC)$ cắt cạnh $SD$ tại $N$.";
+
+        const CLUSTER_STEM_23_25 = "<strong>Giả thiết chung (Câu 23, 24, 25):</strong> Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình bình hành tâm $O$. Gọi $M, N$ lần lượt là trung điểm của các cạnh $SA$ và $SC$.";
+
+        const CLUSTER_STEM_P3_4_6 = "<strong>Giả thiết chung (Câu 4, 5, 6 - Phần III):</strong> Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình bình hành tâm $O$. Gọi $M, N$ lần lượt là trung điểm của các cạnh $AB$ và $BC$. Lấy điểm $P$ nằm trên cạnh $SD$ sao cho $SP = 2PD$.";
+
         const MODELS_DATA = [
             // ==================== PHẦN I: 30 CÂU TRẮC NGHIỆM ====================
             {
@@ -527,8 +545,8 @@
                 options: [
                     "A. $M \\in (ABC)$ và $AM \\subset (ABC)$.",
                     "B. $M \\notin (ABC)$.",
-                    "C. $AM \\not\\subset (ABC)$.",
-                    "D. $BC \\not\\subset (ABC)$."
+                    "C. $AM \\notin (ABC)$.",
+                    "D. $BC \\notin (ABC)$."
                 ],
                 answer: "A",
                 explanation: "• <strong>Đáp án A đúng:</strong> Hai điểm $B, C \\in (ABC) \\Rightarrow BC \\subset (ABC)$. Vì $M \\in BC$ nên $M \\in (ABC)$. Khi đó đường thẳng $AM$ đi qua hai điểm phân biệt $A, M \\in (ABC)$ nên $AM \\subset (ABC)$.<br>• <strong>B, C, D sai:</strong> Cả điểm $M$, đường thẳng $AM$ và đường thẳng $BC$ đều nằm trong mặt phẳng $(ABC)$."
@@ -584,56 +602,72 @@
                 answer: "A",
                 explanation: "• <strong>Đáp án A đúng:</strong> Theo quy ước SGK, mặt phẳng xác định bởi hai đường thẳng cắt nhau $a$ và $b$ được kí hiệu là $\\text{mp}(a, b)$.<br>• <strong>B sai:</strong> $a \\cap b$ chỉ là một giao điểm duy nhất, mà một điểm thì không xác định được duy nhất một mặt phẳng."
             },
+            // --- CHÙM CÂU HỎI 1: CÂU 12, 13, 14 (PHẦN I) ---
             {
                 id: "q12_p1",
-                sceneType: "pyramid_SABC_DE_on_SAB",
+                sceneType: "cluster_trapezoid_12_14",
+                clusterFocus: "q12",
+                clusterId: "c12_14",
+                clusterLabel: "Chùm câu 12 – 14",
+                clusterRange: [12, 13, 14],
+                clusterStem: CLUSTER_STEM_12_14,
                 part: 1,
                 qNum: 12,
                 label: "Câu 12 - Phần 1",
-                shortTitle: "Đường thẳng DE với D ∈ SA, E ∈ SB thuộc (SAB)",
-                question: "Cho tam giác $ABC$ và điểm $S \\notin (ABC)$. Lấy $D, E$ lần lượt thuộc các cạnh $SA, SB$ ($D, E$ khác $S$) như hình bên. Đường thẳng $DE$ nằm trong mặt phẳng nào sau đây?",
+                shortTitle: "[Chùm 12–14] Tính tỉ số SN / SD trên hình chóp đáy hình thang",
+                question: "<strong>Câu 12:</strong> Mặt phẳng $(MBC)$ cắt cạnh $SD$ tại điểm $N$. Tỉ số $\\dfrac{SN}{SD}$ bằng bao nhiêu?",
                 options: [
-                    "A. Mặt phẳng $(SAB)$.",
-                    "B. Mặt phẳng $(ABC)$.",
-                    "C. Mặt phẳng $(SBC)$.",
-                    "D. Mặt phẳng $(SAC)$."
+                    "A. $\\dfrac{1}{2}$.",
+                    "B. $\\dfrac{2}{3}$.",
+                    "C. $\\dfrac{1}{3}$.",
+                    "D. $\\dfrac{3}{4}$."
                 ],
-                answer: "A",
-                explanation: "• <strong>Đáp án A đúng:</strong> Vì $D \\in SA \\subset (SAB)$ và $E \\in SB \\subset (SAB)$ nên đường thẳng $DE$ đi qua hai điểm phân biệt $D, E$ cùng thuộc $(SAB) \\Rightarrow DE \\subset (SAB)$.<br>• <strong>B, C, D sai:</strong> Điểm $E \\notin (SAC)$, điểm $D \\notin (SBC)$ và $D, E \\notin (ABC)$."
+                answer: "B",
+                explanation: "• <strong>Đáp án B đúng ($\\frac{SN}{SD} = \\frac{2}{3}$):</strong><br>1) Trong mặt phẳng $(ABCD)$, gọi $E = AD \\cap BC$. Vì $E \\in BC \\subset (MBC)$ và $M \\in SA \\subset (SAD)$ nên giao tuyến của $(MBC)$ và $(SAD)$ là đường thẳng $ME$. Do đó $N = ME \\cap SD$.<br>2) Trong $\\triangle EAB$, vì $CD \\parallel AB$ và $CD = \\frac{1}{2}AB$ nên $CD$ là đường trung bình của $\\triangle EAB \\Rightarrow D$ là trung điểm của $AE$ ($\\frac{EA}{ED} = 2$).<br>3) Áp dụng định lý Menelaus cho $\\triangle SAD$ với cát tuyến $M - N - E$:<br>$$\\frac{MS}{MA} \\cdot \\frac{EA}{ED} \\cdot \\frac{ND}{NS} = 1 \\Rightarrow 1 \\cdot 2 \\cdot \\frac{ND}{NS} = 1 \\Rightarrow \\frac{ND}{NS} = \\frac{1}{2} \\Rightarrow \\frac{SN}{SD} = \\frac{2}{3}.$$"
             },
             {
                 id: "q13_p1",
-                sceneType: "pyramid_SABCD_backD_page3",
+                sceneType: "cluster_trapezoid_12_14",
+                clusterFocus: "q13",
+                clusterId: "c12_14",
+                clusterLabel: "Chùm câu 12 – 14",
+                clusterRange: [12, 13, 14],
+                clusterStem: CLUSTER_STEM_12_14,
                 part: 1,
                 qNum: 13,
                 label: "Câu 13 - Phần 1",
-                shortTitle: "Mặt bên của hình chóp S.ABCD đáy hình bình hành",
-                question: "Cho hình chóp tứ giác $S.ABCD$ có đáy là hình bình hành $ABCD$ như hình bên. Tam giác nào sau đây là một mặt bên của hình chóp $S.ABCD$?",
+                shortTitle: "[Chùm 12–14] Tỉ số diện tích tam giác SMN và tam giác SAD",
+                question: "<strong>Câu 13:</strong> Giao tuyến của mặt phẳng $(MBC)$ với mặt phẳng $(SCD)$ là đường thẳng $CN$. Thiết diện tạo bởi mặt phẳng $(MBC)$ và hình chóp $S.ABCD$ là một tứ giác $MNCB$. Tỉ số diện tích của tam giác $SMN$ và tam giác $SAD$ $\\left(\\dfrac{S_{\\triangle SMN}}{S_{\\triangle SAD}}\\right)$ bằng:",
                 options: [
-                    "A. Tam giác $SBC$.",
-                    "B. Tam giác $ABC$.",
-                    "C. Tam giác $SAC$.",
-                    "D. Tam giác $SBD$."
+                    "A. $\\dfrac{1}{6}$.",
+                    "B. $\\dfrac{1}{3}$.",
+                    "C. $\\dfrac{1}{4}$.",
+                    "D. $\\dfrac{1}{2}$."
                 ],
-                answer: "A",
-                explanation: "• <strong>Đáp án A đúng:</strong> Hình chóp tứ giác $S.ABCD$ có 4 mặt bên là các tam giác có chung đỉnh $S$ và một cạnh đáy: $(SAB), (SBC), (SCD), (SDA)$. Do đó tam giác $SBC$ là một mặt bên.<br>• <strong>B sai:</strong> Tam giác $ABC$ nằm trong mặt đáy $(ABCD)$.<br>• <strong>C, D sai:</strong> Tam giác $SAC$ và $SBD$ là các thiết diện chéo đi qua đường chéo đáy, không phải mặt bên."
+                answer: "B",
+                explanation: "• <strong>Đáp án B đúng ($\\frac{S_{\\triangle SMN}}{S_{\\triangle SAD}} = \\frac{1}{3}$):</strong><br>1) Vì $M$ là trung điểm của $SA$ nên $\\dfrac{SM}{SA} = \\dfrac{1}{2}$.<br>2) Theo kết quả Câu 12, điểm $N = ME \\cap SD$ thỏa mãn $\\dfrac{SN}{SD} = \\dfrac{2}{3}$.<br>3) Trong mặt phẳng $(SAD)$, tỉ số diện tích hai tam giác có chung góc $\\widehat{ASD}$ là:<br>$$\\frac{S_{\\triangle SMN}}{S_{\\triangle SAD}} = \\frac{\\frac{1}{2} SM \\cdot SN \\cdot \\sin \\widehat{ASD}}{\\frac{1}{2} SA \\cdot SD \\cdot \\sin \\widehat{ASD}} = \\frac{SM}{SA} \\cdot \\frac{SN}{SD} = \\frac{1}{2} \\cdot \\frac{2}{3} = \\frac{1}{3}.$$"
             },
             {
                 id: "q14_p1",
-                sceneType: "tetrahedron_ABCD_topA",
+                sceneType: "cluster_trapezoid_12_14",
+                clusterFocus: "q14",
+                clusterId: "c12_14",
+                clusterLabel: "Chùm câu 12 – 14",
+                clusterRange: [12, 13, 14],
+                clusterStem: CLUSTER_STEM_12_14,
                 part: 1,
                 qNum: 14,
                 label: "Câu 14 - Phần 1",
-                shortTitle: "Số mặt và số cạnh của hình tứ diện ABCD",
-                question: "Cho bốn điểm $A, B, C, D$ không đồng phẳng tạo thành hình tứ diện $ABCD$ như hình bên. Hình tứ diện $ABCD$ có bao nhiêu mặt và bao nhiêu cạnh?",
+                shortTitle: "[Chùm 12–14] Giao điểm I = SO ∩ (MBC) và tỉ số SI / SO",
+                question: "<strong>Câu 14:</strong> Gọi $I$ là giao điểm của đường thẳng $SO$ và mặt phẳng $(MBC)$. Tính tỉ số $\\dfrac{SI}{SO}$.",
                 options: [
-                    "A. 4 mặt và 6 cạnh.",
-                    "B. 4 mặt và 4 cạnh.",
-                    "C. 6 mặt và 4 cạnh.",
-                    "D. 5 mặt và 8 cạnh."
+                    "A. $\\dfrac{1}{2}$.",
+                    "B. $\\dfrac{3}{4}$.",
+                    "C. $\\dfrac{2}{3}$.",
+                    "D. $\\dfrac{4}{5}$."
                 ],
-                answer: "A",
-                explanation: "• <strong>Đáp án A đúng:</strong> Hình tứ diện $ABCD$ được giới hạn bởi <strong>4 mặt tam giác</strong> $(ABC), (ACD), (ABD), (BCD)$ và có <strong>6 cạnh</strong> nối đôi một 4 đỉnh là $AB, AC, AD, BC, CD, BD$.<br>• <strong>D sai:</strong> 5 mặt và 8 cạnh là của hình chóp tứ giác."
+                answer: "B",
+                explanation: "• <strong>Đáp án B đúng ($\\frac{SI}{SO} = \\frac{3}{4}$):</strong><br>1) Trong mặt phẳng $(SAC)$, đường thẳng $MC \\subset (MBC)$ cắt $SO$ tại $I \\Rightarrow I = SO \\cap (MBC)$.<br>2) Trong hình thang $ABCD$ ($AB \\parallel CD, AB = 2CD$), theo định lý Thales cho hai tam giác đồng dạng $\\triangle OAB$ và $\\triangle OCD$:<br>$$\\frac{OA}{OC} = \\frac{AB}{CD} = 2 \\Rightarrow \\frac{CA}{CO} = 3.$$<br>3) Áp dụng định lý Menelaus cho $\\triangle SAO$ với cát tuyến $M - I - C$:<br>$$\\frac{MS}{MA} \\cdot \\frac{CA}{CO} \\cdot \\frac{IO}{IS} = 1 \\Rightarrow 1 \\cdot 3 \\cdot \\frac{IO}{IS} = 1 \\Rightarrow \\frac{IO}{IS} = \\frac{1}{3} \\Rightarrow \\frac{SI}{SO} = \\frac{3}{4}.$$"
             },
             {
                 id: "q15_p1",
@@ -771,56 +805,72 @@
                 answer: "C",
                 explanation: "• <strong>Đáp án C đúng:</strong> Số mặt phẳng nhiều nhất đạt được khi điểm $A$ không thuộc mặt phẳng $\\text{mp}(a, b)$. Khi đó có tối đa <strong>3 mặt phẳng</strong> phân biệt được xác định:<br>1) Mặt phẳng $\\text{mp}(a, b)$ chứa hai đường thẳng cắt nhau $a$ và $b$.<br>2) Mặt phẳng $\\text{mp}(A, a)$ đi qua $A$ và chứa đường thẳng $a$.<br>3) Mặt phẳng $\\text{mp}(A, b)$ đi qua $A$ và chứa đường thẳng $b$."
             },
+            // --- CHÙM CÂU HỎI 2: CÂU 23, 24, 25 (PHẦN I) ---
             {
                 id: "q23_p1",
-                sceneType: "pyramid_SABCD_7_planes",
+                sceneType: "cluster_parallelogram_23_25",
+                clusterFocus: "q23",
+                clusterId: "c23_25",
+                clusterLabel: "Chùm câu 23 – 25",
+                clusterRange: [23, 24, 25],
+                clusterStem: CLUSTER_STEM_23_25,
                 part: 1,
                 qNum: 23,
                 label: "Câu 23 - Phần 1",
-                shortTitle: "Số mặt phẳng tối đa xác định bởi tứ giác lồi ABCD và S",
-                question: "Cho tứ giác lồi $ABCD$ và điểm $S$ không thuộc $\\text{mp}(ABCD)$. Có nhiều nhất bao nhiêu mặt phẳng xác định bởi các điểm $A, B, C, D, S$?",
+                shortTitle: "[Chùm 23–25] Số mặt và số cạnh của hình chóp S.ABCD",
+                question: "<strong>Câu 23:</strong> Hình chóp $S.ABCD$ đã cho có tổng cộng bao nhiêu mặt và bao nhiêu cạnh?",
                 options: [
-                    "A. 5.",
-                    "B. 6.",
-                    "C. 7.",
-                    "D. 8."
+                    "A. 4 mặt, 8 cạnh.",
+                    "B. 5 mặt, 8 cạnh.",
+                    "C. 5 mặt, 10 cạnh.",
+                    "D. 6 mặt, 8 cạnh."
                 ],
-                answer: "C",
-                explanation: "• <strong>Đáp án C đúng:</strong> Các mặt phẳng phân biệt được xác định gồm:<br>1) $1$ mặt phẳng đáy $(ABCD)$ (vì 4 điểm $A, B, C, D$ đồng phẳng).<br>2) $4$ mặt bên: $(SAB), (SBC), (SCD), (SDA)$.<br>3) $2$ mặt chéo đi qua đỉnh $S$ và đường chéo đáy: $(SAC), (SBD)$.<br>Tổng cộng có $1 + 4 + 2 = 7$ mặt phẳng."
+                answer: "B",
+                explanation: "• <strong>Đáp án B đúng (5 mặt, 8 cạnh):</strong><br>- Hình chóp tứ giác $S.ABCD$ có $4$ mặt bên $(SAB), (SBC), (SCD), (SDA)$ và $1$ mặt đáy $(ABCD)$ $\\Rightarrow$ tổng cộng <strong>5 mặt</strong>.<br>- Hình chóp có $4$ cạnh bên ($SA, SB, SC, SD$) và $4$ cạnh đáy ($AB, BC, CD, DA$) $\\Rightarrow$ tổng cộng <strong>8 cạnh</strong>."
             },
             {
                 id: "q24_p1",
-                sceneType: "five_points_ABCDE_space",
+                sceneType: "cluster_parallelogram_23_25",
+                clusterFocus: "q24",
+                clusterId: "c23_25",
+                clusterLabel: "Chùm câu 23 – 25",
+                clusterRange: [23, 24, 25],
+                clusterStem: CLUSTER_STEM_23_25,
                 part: 1,
                 qNum: 24,
                 label: "Câu 24 - Phần 1",
-                shortTitle: "Số mặt phẳng qua 3 trong 5 điểm A, B, C, D, E",
-                question: "Cho 5 điểm $A, B, C, D, E$ trong đó không có 4 điểm nào đồng phẳng. Hỏi có bao nhiêu mặt phẳng tạo bởi 3 trong 5 điểm đã cho?",
+                shortTitle: "[Chùm 23–25] Giao tuyến của hai mặt phẳng (SAC) và (SBD)",
+                question: "<strong>Câu 24:</strong> Giao tuyến của hai mặt phẳng $(SAC)$ và $(SBD)$ là đường thẳng nào sau đây?",
                 options: [
-                    "A. 10.",
-                    "B. 12.",
-                    "C. 8.",
-                    "D. 14."
+                    "A. $SO$.",
+                    "B. $MN$.",
+                    "C. $SA$.",
+                    "D. $BD$."
                 ],
                 answer: "A",
-                explanation: "• <strong>Đáp án A đúng:</strong> Vì không có 4 điểm nào đồng phẳng nên cũng không có 3 điểm nào thẳng hàng, đồng thời mỗi bộ 3 điểm khác nhau tạo ra một mặt phẳng hoàn toàn phân biệt. Do đó số mặt phẳng tạo thành là số tổ hợp chập 3 của 5 điểm: $C_5^3 = \\frac{5!}{3!2!} = 10$ mặt phẳng."
+                explanation: "• <strong>Đáp án A đúng ($SO$):</strong><br>- Đỉnh $S$ là điểm chung thứ nhất của $(SAC)$ và $(SBD)$.<br>- Trong mặt phẳng đáy $(ABCD)$, hai đường chéo cắt nhau tại tâm $O = AC \\cap BD \\Rightarrow O \\in AC \\subset (SAC)$ và $O \\in BD \\subset (SBD)$ nên $O$ là điểm chung thứ hai.<br>- Vậy $(SAC) \\cap (SBD) = SO$."
             },
             {
                 id: "q25_p1",
-                sceneType: "pentagonal_pyramid_SABCDE",
+                sceneType: "cluster_parallelogram_23_25",
+                clusterFocus: "q25",
+                clusterId: "c23_25",
+                clusterLabel: "Chùm câu 23 – 25",
+                clusterRange: [23, 24, 25],
+                clusterStem: CLUSTER_STEM_23_25,
                 part: 1,
                 qNum: 25,
                 label: "Câu 25 - Phần 1",
-                shortTitle: "Số mặt và số cạnh của hình chóp đáy ngũ giác",
-                question: "Một hình chóp có đáy là ngũ giác có số mặt và số cạnh là:",
+                shortTitle: "[Chùm 23–25] Giao điểm Q = SD ∩ (MNP) và tỉ số SQ / SD",
+                question: "<strong>Câu 25:</strong> Lấy điểm $P$ nằm trên cạnh $SB$ sao cho $SP = 2PB$. Gọi $Q$ là giao điểm của đường thẳng $SD$ với mặt phẳng $(MNP)$. Tỉ số $SQ / SD$ bằng bao nhiêu?",
                 options: [
-                    "A. 5 mặt, 5 cạnh.",
-                    "B. 6 mặt, 5 cạnh.",
-                    "C. 6 mặt, 10 cạnh.",
-                    "D. 5 mặt, 10 cạnh."
+                    "A. $1/2$.",
+                    "B. $1/3$.",
+                    "C. $2/3$.",
+                    "D. $2/5$."
                 ],
-                answer: "C",
-                explanation: "• <strong>Đáp án C đúng:</strong> Hình chóp ngũ giác có:<br>- <strong>Số mặt:</strong> $5$ mặt bên tam giác + $1$ mặt đáy ngũ giác $= 6$ mặt.<br>- <strong>Số cạnh:</strong> $5$ cạnh bên + $5$ cạnh đáy $= 10$ cạnh."
+                answer: "D",
+                explanation: "• <strong>Đáp án D đúng ($SQ/SD = 2/5$):</strong><br>1) Trong $\\triangle SAC$, vì $M, N$ là trung điểm của $SA, SC$ nên $MN$ là đường trung bình của $\\triangle SAC$. Gọi $I = MN \\cap SO \\Rightarrow I$ là trung điểm của $SO$ ($\\dfrac{SO}{SI} = 2$).<br>2) Trong mặt phẳng $(SBD)$, đường thẳng $PI \\subset (MNP)$ cắt $SD$ tại $Q \\Rightarrow Q = SD \\cap (MNP)$.<br>3) Áp dụng công thức đồng phẳng tâm tỉ cự trên $(SBD)$ (với $O$ là trung điểm $BD$ và $P, I, Q$ thẳng hàng):<br>$$\\frac{SB}{SP} + \\frac{SD}{SQ} = 2 \\frac{SO}{SI} \\Rightarrow \\frac{3}{2} + \\frac{SD}{SQ} = 2 \\cdot 2 = 4 \\Rightarrow \\frac{SD}{SQ} = \\frac{5}{2} \\Rightarrow \\frac{SQ}{SD} = \\frac{2}{5}.$$"
             },
             {
                 id: "q26_p1",
@@ -1015,41 +1065,58 @@
                 answer: "10",
                 explanation: "• <strong>Đáp án đúng là 10:</strong> Hình chóp tứ giác $S.ABCD$ có $5$ mặt ($4$ mặt bên $+ 1$ mặt đáy) và $5$ đỉnh ($S, A, B, C, D$). Tổng số mặt và số đỉnh là $5 + 5 = 10$."
             },
+            // --- CHÙM CÂU HỎI 3: CÂU 4, 5, 6 (PHẦN III) ---
             {
                 id: "q4_p3",
-                sceneType: "tetrahedron_ABCD_3_opposite_pairs",
+                sceneType: "cluster_p3_4_6",
+                clusterFocus: "p3_q4",
+                clusterId: "cp3_4_6",
+                clusterLabel: "Chùm câu 4 – 6 (Phần III)",
+                clusterRange: [4, 5, 6],
+                clusterStem: CLUSTER_STEM_P3_4_6,
                 part: 3,
                 qNum: 4,
                 label: "Câu 4 - Phần 3",
-                shortTitle: "Số cặp cạnh đối nhau của hình tứ diện ABCD",
-                question: "Cho hình tứ diện $ABCD$ như hình vẽ bên. Trong hình tứ diện, hai cạnh không có đỉnh chung được gọi là một cặp cạnh đối nhau. Hỏi hình tứ diện $ABCD$ có tất cả bao nhiêu cặp cạnh đối nhau?",
-                shortAnswer: "3",
-                answer: "3",
-                explanation: "• <strong>Đáp án đúng là 3:</strong> Hình tứ diện $ABCD$ có $6$ cạnh chia thành $3$ cặp cạnh đối nhau từng đôi một không có đỉnh chung: $(AB \\text{ và } CD)$, $(AC \\text{ và } BD)$, $(AD \\text{ và } BC)$."
+                shortTitle: "[Chùm 4–6] Số mặt phẳng qua S chứa cạnh hoặc đường chéo đáy",
+                question: "<strong>Câu 4:</strong> Có tất cả bao nhiêu mặt phẳng đi qua đỉnh $S$ và chứa một đường chéo hoặc một cạnh của đáy $ABCD$?",
+                shortAnswer: "6",
+                answer: "6",
+                explanation: "• <strong>Đáp án đúng là 6:</strong><br>- Đáy $ABCD$ có $4$ cạnh ($AB, BC, CD, DA$) tạo với đỉnh $S$ được $4$ mặt bên: $(SAB), (SBC), (SCD), (SDA)$.<br>- Đáy $ABCD$ có $2$ đường chéo ($AC, BD$) tạo với đỉnh $S$ được $2$ mặt chéo: $(SAC), (SBD)$.<br>- Tổng cộng có $4 + 2 = 6$ mặt phẳng."
             },
             {
                 id: "q5_p3",
-                sceneType: "pentagonal_pyramid_SABCDE",
+                sceneType: "cluster_p3_4_6",
+                clusterFocus: "p3_q5",
+                clusterId: "cp3_4_6",
+                clusterLabel: "Chùm câu 4 – 6 (Phần III)",
+                clusterRange: [4, 5, 6],
+                clusterStem: CLUSTER_STEM_P3_4_6,
                 part: 3,
                 qNum: 5,
                 label: "Câu 5 - Phần 3",
-                shortTitle: "Tổng số cạnh của hình chóp ngũ giác S.ABCDE",
-                question: "Hình chóp ngũ giác $S.ABCDE$ có tất cả bao nhiêu cạnh (tính cả cạnh bên và cạnh đáy)?",
-                shortAnswer: "10",
-                answer: "10",
-                explanation: "• <strong>Đáp án đúng là 10:</strong> Hình chóp ngũ giác $S.ABCDE$ có $5$ cạnh bên ($SA, SB, SC, SD, SE$) và $5$ cạnh đáy ($AB, BC, CD, DE, EA$). Tổng cộng có $5 + 5 = 10$ cạnh."
+                shortTitle: "[Chùm 4–6] Giao điểm E = MN ∩ BD và tỉ số BE / BD",
+                question: "<strong>Câu 5:</strong> Trong mặt phẳng $(ABCD)$, gọi $E$ là giao điểm của đường thẳng $MN$ và đường chéo $BD$. Tính tỉ số $BE / BD$ (nhập dạng số thập phân $0,25$ hoặc phân số $1/4$).",
+                shortAnswer: "0.25",
+                acceptedAnswers: ["0.25", "0,25", "1/4"],
+                answer: "0,25 (1/4)",
+                explanation: "• <strong>Đáp án đúng là $0,25$ (tức $\\dfrac{1}{4}$):</strong><br>1) Trong $\\triangle ABC$, vì $M, N$ là trung điểm của $AB, BC$ nên $MN$ là đường trung bình của $\\triangle ABC \\Rightarrow MN \\parallel AC$.<br>2) Trong $\\triangle ABO$, đường thẳng $MN$ đi qua trung điểm $M$ của $AB$ và song song với $AO$ nên cắt $BO$ tại trung điểm $E$ của $BO$ ($BE = \\dfrac{1}{2}BO$).<br>3) Vì $O$ là tâm hình bình hành nên $BO = \\dfrac{1}{2}BD \\Rightarrow BE = \\dfrac{1}{4}BD \\Rightarrow \\dfrac{BE}{BD} = \\dfrac{1}{4} = 0,25$."
             },
             {
                 id: "q6_p3",
-                sceneType: "hexagonal_pyramid_SABCDEF",
+                sceneType: "cluster_p3_4_6",
+                clusterFocus: "p3_q6",
+                clusterId: "cp3_4_6",
+                clusterLabel: "Chùm câu 4 – 6 (Phần III)",
+                clusterRange: [4, 5, 6],
+                clusterStem: CLUSTER_STEM_P3_4_6,
                 part: 3,
                 qNum: 6,
                 label: "Câu 6 - Phần 3",
-                shortTitle: "Tính m + c của hình chóp lục giác S.ABCDEF",
-                question: "Cho hình chóp lục giác $S.ABCDEF$ có đáy $ABCDEF$ là một lục giác lồi như hình vẽ bên. Gọi $m$ là số mặt bên và $c$ là tổng số cạnh của hình chóp $S.ABCDEF$. Tính giá trị của biểu thức $m + c$.",
-                shortAnswer: "18",
-                answer: "18",
-                explanation: "• <strong>Đáp án đúng là 18:</strong> Đáy là lục giác (6 cạnh) nên số mặt bên là $m = 6$. Tổng số cạnh gồm $6$ cạnh bên và $6$ cạnh đáy nên $c = 6 + 6 = 12$. Vậy $m + c = 6 + 12 = 18$."
+                shortTitle: "[Chùm 4–6] Giao điểm Q = SB ∩ (MNP) và tính T = a + b",
+                question: "<strong>Câu 6:</strong> Gọi $Q$ là giao điểm của cạnh $SB$ với mặt phẳng $(MNP)$. Biết tỉ số $SQ / SB = a / b$ (với $a / b$ là phân số tối giản, $a, b$ nguyên dương). Tính giá trị của biểu thức $T = a + b$.",
+                shortAnswer: "13",
+                answer: "13",
+                explanation: "• <strong>Đáp án đúng là 13:</strong><br>1) Theo Câu 5, trong mặt phẳng $(ABCD)$, đường thẳng $MN$ cắt $BD$ tại $E$ với $BE = \\dfrac{1}{4}BD \\Rightarrow \\dfrac{ED}{EB} = 3$.<br>2) Trong mặt phẳng $(SBD)$, vì $E \\in MN \\subset (MNP)$ và $P \\in SD \\subset (SBD)$ nên giao tuyến của $(MNP)$ với $(SBD)$ là đường thẳng $PE$. Do đó $Q = PE \\cap SB$.<br>3) Áp dụng định lý Menelaus cho $\\triangle SBD$ với cát tuyến $P - Q - E$:<br>$$\\frac{PS}{PD} \\cdot \\frac{ED}{EB} \\cdot \\frac{QB}{QS} = 1 \\Rightarrow 2 \\cdot 3 \\cdot \\frac{QB}{QS} = 1 \\Rightarrow \\frac{QB}{QS} = \\frac{1}{6} \\Rightarrow \\frac{SQ}{SB} = \\frac{6}{7}.$$<br>4) Vậy $a = 6, b = 7 \\Rightarrow T = a + b = 6 + 7 = 13$."
             }
         ];
 
@@ -2634,6 +2701,187 @@
                     addPointSphere(F, "F", 0xfbbf24, 0.085, new THREE.Vector3(-0.22, 0.18, -0.1));
                     break;
                 }
+
+                case "cluster_trapezoid_12_14": {
+                    // Exact 3D coordinates for Cluster 12-14 (Page 2 PDF):
+                    // Trapezoid ABCD with AB // CD, AB = 2CD, E = AD ∩ BC, O = AC ∩ BD, M midpoint SA, N = ME ∩ SD (SN/SD = 2/3), I = SO ∩ (MBC) (SI/SO = 3/4)
+                    const S = new THREE.Vector3(0.0, 2.55, -0.15);
+                    const A = new THREE.Vector3(-2.1, -0.75, -0.65);
+                    const B = new THREE.Vector3(2.1, -0.75, -0.65);
+                    const D = new THREE.Vector3(-1.05, -0.75, 0.65);
+                    const C = new THREE.Vector3(1.05, -0.75, 0.65);
+                    const E = new THREE.Vector3(0.0, -0.75, 1.95);
+
+                    // Exact intersections:
+                    const O = new THREE.Vector3(0.0, -0.75, 0.2167); // AC ∩ BD (CO/CA = 1/3)
+                    const M = S.clone().lerp(A, 0.5);                // Midpoint of SA
+                    const N = S.clone().lerp(D, 2 / 3);              // SN/SD = 2/3 (collinear with M and E)
+                    const I = S.clone().lerp(O, 0.75);               // SI/SO = 3/4 (intersection of SO, MC, BN)
+
+                    const pyr = buildDynamicQuadPyramid(S, A, B, C, D, {
+                        fSAD: model.clusterFocus === "q13" ? 0xf59e0b : 0x3b82f6
+                    });
+
+                    // Extensions to E = AD ∩ BC on the base plane
+                    registerDynamicEdge(D, E, {
+                        name: 'DE',
+                        color: 0x38bdf8,
+                        radius: 0.035,
+                        coplanarFaces: [pyr.faces.fSDA, pyr.faces.fBase]
+                    });
+                    registerDynamicEdge(C, E, {
+                        name: 'CE',
+                        color: 0x38bdf8,
+                        radius: 0.035,
+                        coplanarFaces: [pyr.faces.fSBC, pyr.faces.fBase]
+                    });
+
+                    // Diagonals AC, BD and line SO
+                    registerDynamicEdge(A, C, { name: 'AC', color: 0x94a3b8, dashedColor: 0x94a3b8, radius: 0.028, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(B, D, { name: 'BD', color: 0x94a3b8, dashedColor: 0x94a3b8, radius: 0.028, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(S, O, {
+                        name: 'SO',
+                        color: model.clusterFocus === "q14" ? 0xfacc15 : 0x94a3b8,
+                        dashedColor: model.clusterFocus === "q14" ? 0xfacc15 : 0x94a3b8,
+                        radius: model.clusterFocus === "q14" ? 0.044 : 0.03,
+                        strictlyInsidePoly: true
+                    });
+
+                    // Cross-section plane (MBC) = (MNCB)
+                    registerPolygonFace([M, N, C, B], {
+                        name: '(MNCB)',
+                        color: 0xf43f5e,
+                        opacity: 0.24,
+                        occluder: false,
+                        isHelperSection: true
+                    });
+
+                    // Edges of cross-section (MNCB) & line ME
+                    registerDynamicEdge(M, B, { name: 'MB', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.042, onFace: pyr.faces.fSAB });
+                    registerDynamicEdge(M, N, { name: 'MN', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.045, onFace: pyr.faces.fSDA });
+                    registerDynamicEdge(N, E, { name: 'NE', color: 0xfbbf24, radius: 0.036, coplanarFaces: [pyr.faces.fSDA] });
+                    registerDynamicEdge(N, C, { name: 'NC', color: 0xf43f5e, radius: 0.045, onFace: pyr.faces.fSCD });
+
+                    if (model.clusterFocus === "q14") {
+                        registerDynamicEdge(M, C, { name: 'MC', color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.036, strictlyInsidePoly: true });
+                        registerDynamicEdge(B, N, { name: 'BN', color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.036, strictlyInsidePoly: true });
+                        addPointSphere(I, "I", 0xfacc15, 0.11, new THREE.Vector3(0.24, 0.12, 0));
+                    }
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0x38bdf8, 0.09, new THREE.Vector3(-0.26, -0.05, 0));
+                    addPointSphere(B, "B", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(C, "C", 0x38bdf8, 0.09, new THREE.Vector3(0.26, -0.1, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.09, new THREE.Vector3(-0.28, -0.1, 0.1));
+                    addPointSphere(E, "E", 0xfacc15, 0.095, new THREE.Vector3(0, -0.28, 0.12));
+                    addPointSphere(O, "O", 0x38bdf8, 0.085, new THREE.Vector3(0.05, -0.26, 0));
+                    addPointSphere(M, "M", 0xf43f5e, 0.1, new THREE.Vector3(-0.26, 0.12, 0));
+                    addPointSphere(N, "N", 0xf43f5e, 0.105, new THREE.Vector3(-0.26, 0.08, 0.1));
+                    break;
+                }
+
+                case "cluster_parallelogram_23_25": {
+                    // Exact 3D coordinates for Cluster 23-25 (Page 4 PDF):
+                    // S.ABCD with parallelogram base ABCD center O, M midpoint SA, N midpoint SC, P on SB (SP=2PB), Q = SD ∩ (MNP) (SQ/SD = 2/5)
+                    const S = new THREE.Vector3(0.0, 2.45, 0.15);
+                    const A = new THREE.Vector3(-0.95, -0.9, -0.9);
+                    const D = new THREE.Vector3(1.95, -0.9, -0.9);
+                    const B = new THREE.Vector3(-1.95, -0.9, 1.15);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.15);
+                    const O = new THREE.Vector3(0.0, -0.9, 0.125);
+
+                    const M = S.clone().lerp(A, 0.5);
+                    const N = S.clone().lerp(C, 0.5);
+                    const I = S.clone().lerp(O, 0.5); // I = MN ∩ SO (midpoint of SO)
+                    const P = S.clone().lerp(B, 2 / 3); // SP = 2PB
+                    const Q = S.clone().lerp(D, 2 / 5); // SQ/SD = 2/5
+
+                    const pyr = buildDynamicQuadPyramid(S, A, B, C, D);
+
+                    registerDynamicEdge(A, C, { name: 'AC', color: 0x94a3b8, dashedColor: 0x94a3b8, radius: 0.03, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(B, D, { name: 'BD', color: 0x94a3b8, dashedColor: 0x94a3b8, radius: 0.03, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(S, O, { name: 'SO', color: 0xfacc15, dashedColor: 0xfacc15, radius: 0.044, strictlyInsidePoly: true });
+                    registerDynamicEdge(M, N, { name: 'MN', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.042, strictlyInsidePoly: true });
+
+                    if (model.clusterFocus === "q25") {
+                        registerPolygonFace([M, P, N, Q], {
+                            name: '(MPNQ)',
+                            color: 0xf43f5e,
+                            opacity: 0.22,
+                            occluder: false,
+                            isHelperSection: true
+                        });
+                        registerDynamicEdge(M, P, { name: 'MP', color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.038, onFace: pyr.faces.fSAB });
+                        registerDynamicEdge(N, P, { name: 'NP', color: 0x22c55e, radius: 0.038, onFace: pyr.faces.fSBC });
+                        registerDynamicEdge(N, Q, { name: 'NQ', color: 0x22c55e, radius: 0.038, onFace: pyr.faces.fSCD });
+                        registerDynamicEdge(M, Q, { name: 'MQ', color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.038, onFace: pyr.faces.fSDA });
+                        registerDynamicEdge(P, Q, { name: 'PQ', color: 0xfacc15, dashedColor: 0xfacc15, radius: 0.04, strictlyInsidePoly: true });
+
+                        addPointSphere(I, "I", 0xfacc15, 0.085, new THREE.Vector3(0.2, 0.08, 0));
+                        addPointSphere(P, "P", 0x22c55e, 0.1, new THREE.Vector3(-0.26, 0.05, 0.1));
+                        addPointSphere(Q, "Q", 0x22c55e, 0.1, new THREE.Vector3(0.24, 0.12, 0));
+                    }
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0xfbbf24, 0.085, new THREE.Vector3(-0.2, 0.18, -0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(-0.25, -0.22, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.2, -0.25, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(O, "O", 0xfacc15, 0.095, new THREE.Vector3(0.05, -0.28, 0));
+                    addPointSphere(M, "M", 0xf43f5e, 0.095, new THREE.Vector3(-0.24, 0.12, 0));
+                    addPointSphere(N, "N", 0xf43f5e, 0.095, new THREE.Vector3(0.24, 0.1, 0));
+                    break;
+                }
+
+                case "cluster_p3_4_6": {
+                    // Exact 3D coordinates for Cluster 4-6 Phần III (Page 6 PDF):
+                    // S.ABCD with parallelogram base ABCD center O, M midpoint AB, N midpoint BC, P on SD (SP=2PD), E = MN ∩ BD (BE/BD = 1/4), Q = SB ∩ (MNP) (SQ/SB = 6/7)
+                    const S = new THREE.Vector3(0.0, 2.45, 0.15);
+                    const A = new THREE.Vector3(-0.95, -0.9, -0.9);
+                    const D = new THREE.Vector3(1.95, -0.9, -0.9);
+                    const B = new THREE.Vector3(-1.95, -0.9, 1.15);
+                    const C = new THREE.Vector3(0.95, -0.9, 1.15);
+                    const O = new THREE.Vector3(0.0, -0.9, 0.125);
+
+                    const M = A.clone().lerp(B, 0.5);
+                    const N = B.clone().lerp(C, 0.5);
+                    const P = S.clone().lerp(D, 2 / 3);   // SP = 2PD
+                    const E = B.clone().lerp(D, 0.25);    // BE/BD = 1/4 (midpoint of BO)
+                    const Q = S.clone().lerp(B, 6 / 7);   // SQ/SB = 6/7 (collinear with P and E)
+
+                    const pyr = buildDynamicQuadPyramid(S, A, B, C, D);
+
+                    registerDynamicEdge(A, C, { name: 'AC', color: 0x94a3b8, dashedColor: 0x94a3b8, radius: 0.03, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(B, D, { name: 'BD', color: 0xfacc15, dashedColor: 0xfacc15, radius: 0.036, onFace: pyr.faces.fBase });
+                    registerDynamicEdge(S, O, { name: 'SO', color: 0x94a3b8, dashedColor: 0x94a3b8, radius: 0.032, strictlyInsidePoly: true });
+
+                    registerDynamicEdge(M, N, { name: 'MN', color: 0xf43f5e, dashedColor: 0xf43f5e, radius: 0.044, onFace: pyr.faces.fBase });
+
+                    if (model.clusterFocus === "p3_q6") {
+                        registerPolygonFace([M, N, P], {
+                            name: '(MNP)',
+                            color: 0xf43f5e,
+                            opacity: 0.22,
+                            occluder: false,
+                            isHelperSection: true
+                        });
+                        registerDynamicEdge(P, E, { name: 'PE', color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.04, strictlyInsidePoly: true });
+                        registerDynamicEdge(E, Q, { name: 'EQ', color: 0x22c55e, dashedColor: 0x22c55e, radius: 0.04, strictlyInsidePoly: true });
+                        addPointSphere(Q, "Q", 0x22c55e, 0.105, new THREE.Vector3(-0.28, 0.08, 0.1));
+                    }
+
+                    addPointSphere(S, "S", 0x38bdf8, 0.1, new THREE.Vector3(0, 0.26, 0));
+                    addPointSphere(A, "A", 0xfbbf24, 0.085, new THREE.Vector3(-0.2, 0.18, -0.1));
+                    addPointSphere(B, "B", 0x38bdf8, 0.095, new THREE.Vector3(-0.25, -0.22, 0.1));
+                    addPointSphere(C, "C", 0x38bdf8, 0.095, new THREE.Vector3(0.2, -0.25, 0.1));
+                    addPointSphere(D, "D", 0x38bdf8, 0.095, new THREE.Vector3(0.26, -0.05, 0));
+                    addPointSphere(O, "O", 0xfacc15, 0.09, new THREE.Vector3(0.1, -0.26, 0));
+                    addPointSphere(M, "M", 0xf43f5e, 0.095, new THREE.Vector3(-0.26, -0.1, 0));
+                    addPointSphere(N, "N", 0xf43f5e, 0.095, new THREE.Vector3(0, -0.28, 0.1));
+                    addPointSphere(P, "P", 0xf43f5e, 0.1, new THREE.Vector3(0.25, 0.1, 0));
+                    addPointSphere(E, "E", 0x22c55e, 0.095, new THREE.Vector3(-0.1, 0.24, 0));
+                    break;
+                }
             }
 
             updateRealTimeOcclusion(true);
@@ -2683,6 +2931,36 @@
             document.getElementById('panel-title').textContent = model.shortTitle;
             document.getElementById('floating-pill-badge').textContent = model.label;
             document.getElementById('floating-pill-title').textContent = model.shortTitle;
+
+            // Render Shared Cluster Context Box if this question belongs to a Cluster
+            const clusterBox = document.getElementById('panel-cluster-box');
+            const clusterBadge = document.getElementById('panel-cluster-badge');
+            const clusterTabs = document.getElementById('panel-cluster-tabs');
+            const clusterStem = document.getElementById('panel-cluster-stem');
+
+            if (model.clusterId && model.clusterStem) {
+                clusterBox.classList.remove('hidden');
+                clusterBadge.textContent = model.clusterLabel || 'Câu hỏi chùm';
+                renderMathInNode(clusterStem, model.clusterStem);
+
+                clusterTabs.innerHTML = '';
+                (model.clusterRange || []).forEach(qNumber => {
+                    const targetIdx = MODELS_DATA.findIndex(item => item.part === model.part && item.qNum === qNumber);
+                    if (targetIdx === -1) return;
+                    const isCurrent = (qNumber === model.qNum);
+                    const tabBtn = document.createElement('button');
+                    tabBtn.type = 'button';
+                    tabBtn.className = isCurrent
+                        ? 'px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-500 text-white shadow'
+                        : 'px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900/90 text-slate-300 hover:text-white border border-slate-700 transition';
+                    tabBtn.textContent = `Câu ${qNumber}`;
+                    tabBtn.onclick = () => selectModel(targetIdx, true);
+                    clusterTabs.appendChild(tabBtn);
+                });
+            } else {
+                clusterBox.classList.add('hidden');
+            }
+
             renderMathInNode(document.getElementById('panel-question-text'), model.question);
 
             const partTypeEl = document.getElementById('panel-part-type');
@@ -2874,10 +3152,19 @@
                 const box = document.createElement('div');
                 box.className = 'space-y-2.5 pt-1';
 
+                const isCorrectShortAnswer = (rawVal) => {
+                    const normalized = String(rawVal || '').trim().replace(/\s+/g, '');
+                    if (!normalized) return false;
+                    if (Array.isArray(model.acceptedAnswers)) {
+                        return model.acceptedAnswers.some(ans => ans.toLowerCase() === normalized.toLowerCase());
+                    }
+                    return normalized.toLowerCase() === String(model.shortAnswer).trim().toLowerCase();
+                };
+
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = state.shortInput || '';
-                input.placeholder = 'Nhập đáp số nguyên (VD: 4, 10, 18)...';
+                input.placeholder = 'Nhập đáp số (VD: 4, 10, 6, 0,25, 13)...';
                 input.className = 'w-full bg-slate-900 border border-slate-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none';
                 input.oninput = (e) => {
                     state.shortInput = e.target.value;
@@ -2889,9 +3176,8 @@
                 };
                 input.onkeydown = (e) => {
                     if (e.key === 'Enter') {
-                        const userVal = String(state.shortInput || '').trim();
                         state.answered = true;
-                        state.isCorrect = (userVal !== '' && userVal === String(model.shortAnswer).trim());
+                        state.isCorrect = isCorrectShortAnswer(state.shortInput);
                         renderQuestionInteractiveUI(model);
                         renderSidebarList();
                     }
@@ -2905,9 +3191,8 @@
                 checkBtn.className = 'flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow';
                 checkBtn.textContent = 'Kiểm tra đáp án';
                 checkBtn.onclick = () => {
-                    const userVal = String(state.shortInput || '').trim();
                     state.answered = true;
-                    state.isCorrect = (userVal !== '' && userVal === String(model.shortAnswer).trim());
+                    state.isCorrect = isCorrectShortAnswer(state.shortInput);
                     renderQuestionInteractiveUI(model);
                     renderSidebarList();
                 };
